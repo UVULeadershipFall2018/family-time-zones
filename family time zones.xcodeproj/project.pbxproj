@@ -1,0 +1,593 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FD9E7EE62DAA5B5900C6892D /* family_time_zonesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7EE52DAA5B5900C6892D /* family_time_zonesApp.swift */; };
+		FD9E7EE82DAA5B5900C6892D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7EE72DAA5B5900C6892D /* ContentView.swift */; };
+		FD9E7EEA2DAA5B5A00C6892D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD9E7EE92DAA5B5A00C6892D /* Assets.xcassets */; };
+		FD9E7EED2DAA5B5A00C6892D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD9E7EEC2DAA5B5A00C6892D /* Preview Assets.xcassets */; };
+		FD9E7EF72DAA5B5A00C6892D /* family_time_zonesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7EF62DAA5B5A00C6892D /* family_time_zonesTests.swift */; };
+		FD9E7F012DAA5B5A00C6892D /* family_time_zonesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F002DAA5B5A00C6892D /* family_time_zonesUITests.swift */; };
+		FD9E7F032DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F022DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FD9E7EF32DAA5B5A00C6892D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD9E7EDA2DAA5B5900C6892D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD9E7EE12DAA5B5900C6892D;
+			remoteInfo = "family time zones";
+		};
+		FD9E7EFD2DAA5B5A00C6892D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD9E7EDA2DAA5B5900C6892D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD9E7EE12DAA5B5900C6892D;
+			remoteInfo = "family time zones";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		FD9E7EE22DAA5B5900C6892D /* family time zones.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "family time zones.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD9E7EE52DAA5B5900C6892D /* family_time_zonesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zonesApp.swift; sourceTree = "<group>"; };
+		FD9E7EE72DAA5B5900C6892D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FD9E7EE92DAA5B5A00C6892D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FD9E7EEC2DAA5B5A00C6892D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		FD9E7EF22DAA5B5A00C6892D /* family time zonesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "family time zonesTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD9E7EF62DAA5B5A00C6892D /* family_time_zonesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zonesTests.swift; sourceTree = "<group>"; };
+		FD9E7EFC2DAA5B5A00C6892D /* family time zonesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "family time zonesUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD9E7F002DAA5B5A00C6892D /* family_time_zonesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zonesUITests.swift; sourceTree = "<group>"; };
+		FD9E7F022DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zonesUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FD9E7EDF2DAA5B5900C6892D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD9E7EEF2DAA5B5A00C6892D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD9E7EF92DAA5B5A00C6892D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FD9E7ED92DAA5B5900C6892D = {
+			isa = PBXGroup;
+			children = (
+				FD9E7EE42DAA5B5900C6892D /* family time zones */,
+				FD9E7EF52DAA5B5A00C6892D /* family time zonesTests */,
+				FD9E7EFF2DAA5B5A00C6892D /* family time zonesUITests */,
+				FD9E7EE32DAA5B5900C6892D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		FD9E7EE32DAA5B5900C6892D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7EE22DAA5B5900C6892D /* family time zones.app */,
+				FD9E7EF22DAA5B5A00C6892D /* family time zonesTests.xctest */,
+				FD9E7EFC2DAA5B5A00C6892D /* family time zonesUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FD9E7EE42DAA5B5900C6892D /* family time zones */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7EE52DAA5B5900C6892D /* family_time_zonesApp.swift */,
+				FD9E7EE72DAA5B5900C6892D /* ContentView.swift */,
+				FD9E7EE92DAA5B5A00C6892D /* Assets.xcassets */,
+				FD9E7EEB2DAA5B5A00C6892D /* Preview Content */,
+			);
+			path = "family time zones";
+			sourceTree = "<group>";
+		};
+		FD9E7EEB2DAA5B5A00C6892D /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7EEC2DAA5B5A00C6892D /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		FD9E7EF52DAA5B5A00C6892D /* family time zonesTests */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7EF62DAA5B5A00C6892D /* family_time_zonesTests.swift */,
+			);
+			path = "family time zonesTests";
+			sourceTree = "<group>";
+		};
+		FD9E7EFF2DAA5B5A00C6892D /* family time zonesUITests */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7F002DAA5B5A00C6892D /* family_time_zonesUITests.swift */,
+				FD9E7F022DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift */,
+			);
+			path = "family time zonesUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FD9E7EE12DAA5B5900C6892D /* family time zones */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD9E7F062DAA5B5A00C6892D /* Build configuration list for PBXNativeTarget "family time zones" */;
+			buildPhases = (
+				FD9E7EDE2DAA5B5900C6892D /* Sources */,
+				FD9E7EDF2DAA5B5900C6892D /* Frameworks */,
+				FD9E7EE02DAA5B5900C6892D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "family time zones";
+			productName = "family time zones";
+			productReference = FD9E7EE22DAA5B5900C6892D /* family time zones.app */;
+			productType = "com.apple.product-type.application";
+		};
+		FD9E7EF12DAA5B5A00C6892D /* family time zonesTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD9E7F092DAA5B5A00C6892D /* Build configuration list for PBXNativeTarget "family time zonesTests" */;
+			buildPhases = (
+				FD9E7EEE2DAA5B5A00C6892D /* Sources */,
+				FD9E7EEF2DAA5B5A00C6892D /* Frameworks */,
+				FD9E7EF02DAA5B5A00C6892D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FD9E7EF42DAA5B5A00C6892D /* PBXTargetDependency */,
+			);
+			name = "family time zonesTests";
+			productName = "family time zonesTests";
+			productReference = FD9E7EF22DAA5B5A00C6892D /* family time zonesTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		FD9E7EFB2DAA5B5A00C6892D /* family time zonesUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD9E7F0C2DAA5B5A00C6892D /* Build configuration list for PBXNativeTarget "family time zonesUITests" */;
+			buildPhases = (
+				FD9E7EF82DAA5B5A00C6892D /* Sources */,
+				FD9E7EF92DAA5B5A00C6892D /* Frameworks */,
+				FD9E7EFA2DAA5B5A00C6892D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FD9E7EFE2DAA5B5A00C6892D /* PBXTargetDependency */,
+			);
+			name = "family time zonesUITests";
+			productName = "family time zonesUITests";
+			productReference = FD9E7EFC2DAA5B5A00C6892D /* family time zonesUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FD9E7EDA2DAA5B5900C6892D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					FD9E7EE12DAA5B5900C6892D = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					FD9E7EF12DAA5B5A00C6892D = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = FD9E7EE12DAA5B5900C6892D;
+					};
+					FD9E7EFB2DAA5B5A00C6892D = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = FD9E7EE12DAA5B5900C6892D;
+					};
+				};
+			};
+			buildConfigurationList = FD9E7EDD2DAA5B5900C6892D /* Build configuration list for PBXProject "family time zones" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = FD9E7ED92DAA5B5900C6892D;
+			productRefGroup = FD9E7EE32DAA5B5900C6892D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FD9E7EE12DAA5B5900C6892D /* family time zones */,
+				FD9E7EF12DAA5B5A00C6892D /* family time zonesTests */,
+				FD9E7EFB2DAA5B5A00C6892D /* family time zonesUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FD9E7EE02DAA5B5900C6892D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7EED2DAA5B5A00C6892D /* Preview Assets.xcassets in Resources */,
+				FD9E7EEA2DAA5B5A00C6892D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD9E7EF02DAA5B5A00C6892D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD9E7EFA2DAA5B5A00C6892D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FD9E7EDE2DAA5B5900C6892D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7EE82DAA5B5900C6892D /* ContentView.swift in Sources */,
+				FD9E7EE62DAA5B5900C6892D /* family_time_zonesApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD9E7EEE2DAA5B5A00C6892D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7EF72DAA5B5A00C6892D /* family_time_zonesTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FD9E7EF82DAA5B5A00C6892D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7F012DAA5B5A00C6892D /* family_time_zonesUITests.swift in Sources */,
+				FD9E7F032DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FD9E7EF42DAA5B5A00C6892D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FD9E7EE12DAA5B5900C6892D /* family time zones */;
+			targetProxy = FD9E7EF32DAA5B5A00C6892D /* PBXContainerItemProxy */;
+		};
+		FD9E7EFE2DAA5B5A00C6892D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FD9E7EE12DAA5B5900C6892D /* family time zones */;
+			targetProxy = FD9E7EFD2DAA5B5A00C6892D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		FD9E7F042DAA5B5A00C6892D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		FD9E7F052DAA5B5A00C6892D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		FD9E7F072DAA5B5A00C6892D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"family time zones/Preview Content\"";
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FD9E7F082DAA5B5A00C6892D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"family time zones/Preview Content\"";
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		FD9E7F0A2DAA5B5A00C6892D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zonesTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/family time zones.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/family time zones";
+			};
+			name = Debug;
+		};
+		FD9E7F0B2DAA5B5A00C6892D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zonesTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/family time zones.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/family time zones";
+			};
+			name = Release;
+		};
+		FD9E7F0D2DAA5B5A00C6892D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zonesUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "family time zones";
+			};
+			name = Debug;
+		};
+		FD9E7F0E2DAA5B5A00C6892D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zonesUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "family time zones";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FD9E7EDD2DAA5B5900C6892D /* Build configuration list for PBXProject "family time zones" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD9E7F042DAA5B5A00C6892D /* Debug */,
+				FD9E7F052DAA5B5A00C6892D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD9E7F062DAA5B5A00C6892D /* Build configuration list for PBXNativeTarget "family time zones" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD9E7F072DAA5B5A00C6892D /* Debug */,
+				FD9E7F082DAA5B5A00C6892D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD9E7F092DAA5B5A00C6892D /* Build configuration list for PBXNativeTarget "family time zonesTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD9E7F0A2DAA5B5A00C6892D /* Debug */,
+				FD9E7F0B2DAA5B5A00C6892D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD9E7F0C2DAA5B5A00C6892D /* Build configuration list for PBXNativeTarget "family time zonesUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD9E7F0D2DAA5B5A00C6892D /* Debug */,
+				FD9E7F0E2DAA5B5A00C6892D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FD9E7EDA2DAA5B5900C6892D /* Project object */;
+}
