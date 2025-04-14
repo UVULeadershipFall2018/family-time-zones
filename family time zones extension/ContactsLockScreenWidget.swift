@@ -101,8 +101,17 @@ struct ContactsLockScreenView: View {
     private func formattedTime(for contact: Contact, at date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = contact.timeZone
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        
+        // For lock screen widgets, show exact time
+        if family == .accessoryCircular {
+            // For circular, just show hours:minutes
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        } else {
+            // For rectangular and inline, include seconds for perfect synchronization
+            formatter.dateFormat = "h:mm:ss a"
+            return formatter.string(from: date)
+        }
     }
     
     // Helper function to convert string to Color

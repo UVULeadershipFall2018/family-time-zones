@@ -21,18 +21,42 @@ struct ContactsProvider: TimelineProvider {
         let contacts = SharedStorage.loadContacts()
         print("Widget timeline: Loaded \(contacts.count) contacts")
         
-        // Generate a timeline with entries every minute for the next 30 minutes
+        // Use current date, ensuring we're using the exact current time
         let currentDate = Date()
+        let calendar = Calendar.current
         
-        // Create entries for the next 30 minutes, one per minute
-        for minuteOffset in 0..<30 {
-            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
-            let entry = ContactsEntry(date: entryDate, contacts: contacts)
-            entries.append(entry)
+        // Create entry for the exact current time to ensure immediate update
+        entries.append(ContactsEntry(date: currentDate, contacts: contacts))
+        
+        // Create entries aligned to minute boundaries for better synchronization
+        // First, find the next minute boundary
+        var nextMinuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: currentDate)
+        nextMinuteComponents.minute! += 1
+        nextMinuteComponents.second = 0
+        
+        guard let nextMinuteDate = calendar.date(from: nextMinuteComponents) else {
+            // Fallback if date creation fails
+            let timeline = Timeline(entries: entries, policy: .atEnd)
+            completion(timeline)
+            return
+        }
+        
+        // Create entries at each minute for first 5 minutes for responsive updates
+        for minuteOffset in 0..<5 {
+            if let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: nextMinuteDate) {
+                entries.append(ContactsEntry(date: entryDate, contacts: contacts))
+            }
+        }
+        
+        // Then every 5 minutes for up to an hour for efficiency
+        for minuteOffset in stride(from: 10, through: 60, by: 5) {
+            if let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: nextMinuteDate) {
+                entries.append(ContactsEntry(date: entryDate, contacts: contacts))
+            }
         }
 
-        // Update after 5 minutes maximum
-        let refreshDate = Calendar.current.date(byAdding: .minute, value: 5, to: currentDate)!
+        // Use after date policy with reasonable refresh date
+        let refreshDate = calendar.date(byAdding: .minute, value: 15, to: currentDate) ?? currentDate
         let timeline = Timeline(entries: entries, policy: .after(refreshDate))
         completion(timeline)
     }
