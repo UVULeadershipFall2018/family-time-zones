@@ -4,10 +4,38 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>family time zones extensionExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>family time zones.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>FD9E7EE12DAA5B5900C6892D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>FD9E7EF12DAA5B5A00C6892D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>FD9E7EFB2DAA5B5A00C6892D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>FD9E7F122DAA603700C6892D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

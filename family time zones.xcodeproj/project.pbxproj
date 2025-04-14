@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -14,6 +14,23 @@
 		FD9E7EF72DAA5B5A00C6892D /* family_time_zonesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7EF62DAA5B5A00C6892D /* family_time_zonesTests.swift */; };
 		FD9E7F012DAA5B5A00C6892D /* family_time_zonesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F002DAA5B5A00C6892D /* family_time_zonesUITests.swift */; };
 		FD9E7F032DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F022DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift */; };
+		FD9E7F162DAA603700C6892D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD9E7F152DAA603700C6892D /* WidgetKit.framework */; };
+		FD9E7F182DAA603700C6892D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD9E7F172DAA603700C6892D /* SwiftUI.framework */; };
+		FD9E7F1B2DAA603700C6892D /* family_time_zones_extensionBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F1A2DAA603700C6892D /* family_time_zones_extensionBundle.swift */; };
+		FD9E7F1D2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F1C2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift */; };
+		FD9E7F1F2DAA603700C6892D /* family_time_zones_extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F1E2DAA603700C6892D /* family_time_zones_extension.swift */; };
+		FD9E7F212DAA603700C6892D /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F202DAA603700C6892D /* AppIntent.swift */; };
+		FD9E7F232DAA603800C6892D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD9E7F222DAA603800C6892D /* Assets.xcassets */; };
+		FD9E7F272DAA603800C6892D /* family-time-zones-Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FD9E7F132DAA603700C6892D /* family-time-zones-Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FD9E7F322DAAA9B000C6892D /* ContactModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F2C2DAAA9B000C6892D /* ContactModel.swift */; };
+		FD9E7F342DAAA9B000C6892D /* FamilyTimeZoneWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F2E2DAAA9B000C6892D /* FamilyTimeZoneWidget.swift */; };
+		FD9E7F352DAAA9B000C6892D /* SharedStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F2F2DAAA9B000C6892D /* SharedStorage.swift */; };
+		FD9E7F362DAAA9B000C6892D /* ContactViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F302DAAA9B000C6892D /* ContactViewModel.swift */; };
+		FD9E7F372DAAA9B000C6892D /* ContactsWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F312DAAA9B000C6892D /* ContactsWidgetProvider.swift */; };
+		FD9E7F3E2DAAAE3E00C6892D /* SharedStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3A2DAAAE3E00C6892D /* SharedStorage.swift */; };
+		FD9E7F3F2DAAAE3E00C6892D /* ContactModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3B2DAAAE3E00C6892D /* ContactModel.swift */; };
+		FD9E7F402DAAAE3E00C6892D /* ContactsLockScreenWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3C2DAAAE3E00C6892D /* ContactsLockScreenWidget.swift */; };
+		FD9E7F412DAAAE3E00C6892D /* ContactsWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,7 +48,28 @@
 			remoteGlobalIDString = FD9E7EE12DAA5B5900C6892D;
 			remoteInfo = "family time zones";
 		};
+		FD9E7F252DAA603800C6892D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FD9E7EDA2DAA5B5900C6892D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FD9E7F122DAA603700C6892D;
+			remoteInfo = "family time zones extensionExtension";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FD9E7F2B2DAA603800C6892D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FD9E7F272DAA603800C6892D /* family-time-zones-Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		FD9E7EE22DAA5B5900C6892D /* family time zones.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "family time zones.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -44,6 +82,26 @@
 		FD9E7EFC2DAA5B5A00C6892D /* family time zonesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "family time zonesUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD9E7F002DAA5B5A00C6892D /* family_time_zonesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zonesUITests.swift; sourceTree = "<group>"; };
 		FD9E7F022DAA5B5A00C6892D /* family_time_zonesUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zonesUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		FD9E7F132DAA603700C6892D /* family-time-zones-Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "family-time-zones-Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD9E7F152DAA603700C6892D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		FD9E7F172DAA603700C6892D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		FD9E7F1A2DAA603700C6892D /* family_time_zones_extensionBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zones_extensionBundle.swift; sourceTree = "<group>"; };
+		FD9E7F1C2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zones_extensionLiveActivity.swift; sourceTree = "<group>"; };
+		FD9E7F1E2DAA603700C6892D /* family_time_zones_extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zones_extension.swift; sourceTree = "<group>"; };
+		FD9E7F202DAA603700C6892D /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntent.swift; sourceTree = "<group>"; };
+		FD9E7F222DAA603800C6892D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FD9E7F242DAA603800C6892D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FD9E7F2C2DAAA9B000C6892D /* ContactModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactModel.swift; sourceTree = "<group>"; };
+		FD9E7F2E2DAAA9B000C6892D /* FamilyTimeZoneWidget.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FamilyTimeZoneWidget.swift; sourceTree = "<group>"; };
+		FD9E7F2F2DAAA9B000C6892D /* SharedStorage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharedStorage.swift; sourceTree = "<group>"; };
+		FD9E7F302DAAA9B000C6892D /* ContactViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactViewModel.swift; sourceTree = "<group>"; };
+		FD9E7F312DAAA9B000C6892D /* ContactsWidgetProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsWidgetProvider.swift; sourceTree = "<group>"; };
+		FD9E7F382DAAAD9800C6892D /* family time zones.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "family time zones.entitlements"; sourceTree = "<group>"; };
+		FD9E7F392DAAAE0200C6892D /* family-time-zones-Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "family-time-zones-Extension.entitlements"; sourceTree = "<group>"; };
+		FD9E7F3A2DAAAE3E00C6892D /* SharedStorage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SharedStorage.swift; sourceTree = "<group>"; };
+		FD9E7F3B2DAAAE3E00C6892D /* ContactModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactModel.swift; sourceTree = "<group>"; };
+		FD9E7F3C2DAAAE3E00C6892D /* ContactsLockScreenWidget.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsLockScreenWidget.swift; sourceTree = "<group>"; };
+		FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsWidgetProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,15 +126,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD9E7F102DAA603700C6892D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7F182DAA603700C6892D /* SwiftUI.framework in Frameworks */,
+				FD9E7F162DAA603700C6892D /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		FD9E7ED92DAA5B5900C6892D = {
 			isa = PBXGroup;
 			children = (
+				FD9E7F392DAAAE0200C6892D /* family-time-zones-Extension.entitlements */,
 				FD9E7EE42DAA5B5900C6892D /* family time zones */,
 				FD9E7EF52DAA5B5A00C6892D /* family time zonesTests */,
 				FD9E7EFF2DAA5B5A00C6892D /* family time zonesUITests */,
+				FD9E7F192DAA603700C6892D /* family time zones extension */,
+				FD9E7F142DAA603700C6892D /* Frameworks */,
 				FD9E7EE32DAA5B5900C6892D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,6 +157,7 @@
 				FD9E7EE22DAA5B5900C6892D /* family time zones.app */,
 				FD9E7EF22DAA5B5A00C6892D /* family time zonesTests.xctest */,
 				FD9E7EFC2DAA5B5A00C6892D /* family time zonesUITests.xctest */,
+				FD9E7F132DAA603700C6892D /* family-time-zones-Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -94,6 +165,12 @@
 		FD9E7EE42DAA5B5900C6892D /* family time zones */ = {
 			isa = PBXGroup;
 			children = (
+				FD9E7F382DAAAD9800C6892D /* family time zones.entitlements */,
+				FD9E7F2C2DAAA9B000C6892D /* ContactModel.swift */,
+				FD9E7F312DAAA9B000C6892D /* ContactsWidgetProvider.swift */,
+				FD9E7F302DAAA9B000C6892D /* ContactViewModel.swift */,
+				FD9E7F2E2DAAA9B000C6892D /* FamilyTimeZoneWidget.swift */,
+				FD9E7F2F2DAAA9B000C6892D /* SharedStorage.swift */,
 				FD9E7EE52DAA5B5900C6892D /* family_time_zonesApp.swift */,
 				FD9E7EE72DAA5B5900C6892D /* ContentView.swift */,
 				FD9E7EE92DAA5B5A00C6892D /* Assets.xcassets */,
@@ -127,6 +204,32 @@
 			path = "family time zonesUITests";
 			sourceTree = "<group>";
 		};
+		FD9E7F142DAA603700C6892D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7F152DAA603700C6892D /* WidgetKit.framework */,
+				FD9E7F172DAA603700C6892D /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		FD9E7F192DAA603700C6892D /* family time zones extension */ = {
+			isa = PBXGroup;
+			children = (
+				FD9E7F3B2DAAAE3E00C6892D /* ContactModel.swift */,
+				FD9E7F3C2DAAAE3E00C6892D /* ContactsLockScreenWidget.swift */,
+				FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */,
+				FD9E7F3A2DAAAE3E00C6892D /* SharedStorage.swift */,
+				FD9E7F1A2DAA603700C6892D /* family_time_zones_extensionBundle.swift */,
+				FD9E7F1C2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift */,
+				FD9E7F1E2DAA603700C6892D /* family_time_zones_extension.swift */,
+				FD9E7F202DAA603700C6892D /* AppIntent.swift */,
+				FD9E7F222DAA603800C6892D /* Assets.xcassets */,
+				FD9E7F242DAA603800C6892D /* Info.plist */,
+			);
+			path = "family time zones extension";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -137,10 +240,12 @@
 				FD9E7EDE2DAA5B5900C6892D /* Sources */,
 				FD9E7EDF2DAA5B5900C6892D /* Frameworks */,
 				FD9E7EE02DAA5B5900C6892D /* Resources */,
+				FD9E7F2B2DAA603800C6892D /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FD9E7F262DAA603800C6892D /* PBXTargetDependency */,
 			);
 			name = "family time zones";
 			productName = "family time zones";
@@ -183,6 +288,23 @@
 			productReference = FD9E7EFC2DAA5B5A00C6892D /* family time zonesUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		FD9E7F122DAA603700C6892D /* family-time-zones-Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FD9E7F282DAA603800C6892D /* Build configuration list for PBXNativeTarget "family-time-zones-Extension" */;
+			buildPhases = (
+				FD9E7F0F2DAA603700C6892D /* Sources */,
+				FD9E7F102DAA603700C6892D /* Frameworks */,
+				FD9E7F112DAA603700C6892D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "family-time-zones-Extension";
+			productName = "family time zones extensionExtension";
+			productReference = FD9E7F132DAA603700C6892D /* family-time-zones-Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -204,10 +326,13 @@
 						CreatedOnToolsVersion = 15.4;
 						TestTargetID = FD9E7EE12DAA5B5900C6892D;
 					};
+					FD9E7F122DAA603700C6892D = {
+						CreatedOnToolsVersion = 15.4;
+					};
 				};
 			};
 			buildConfigurationList = FD9E7EDD2DAA5B5900C6892D /* Build configuration list for PBXProject "family time zones" */;
-			compatibilityVersion = "Xcode 14.0";
+			compatibilityVersion = "Xcode 15.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -222,6 +347,7 @@
 				FD9E7EE12DAA5B5900C6892D /* family time zones */,
 				FD9E7EF12DAA5B5A00C6892D /* family time zonesTests */,
 				FD9E7EFB2DAA5B5A00C6892D /* family time zonesUITests */,
+				FD9E7F122DAA603700C6892D /* family-time-zones-Extension */,
 			);
 		};
 /* End PBXProject section */
@@ -250,6 +376,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD9E7F112DAA603700C6892D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7F232DAA603800C6892D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -259,6 +393,11 @@
 			files = (
 				FD9E7EE82DAA5B5900C6892D /* ContentView.swift in Sources */,
 				FD9E7EE62DAA5B5900C6892D /* family_time_zonesApp.swift in Sources */,
+				FD9E7F352DAAA9B000C6892D /* SharedStorage.swift in Sources */,
+				FD9E7F342DAAA9B000C6892D /* FamilyTimeZoneWidget.swift in Sources */,
+				FD9E7F362DAAA9B000C6892D /* ContactViewModel.swift in Sources */,
+				FD9E7F372DAAA9B000C6892D /* ContactsWidgetProvider.swift in Sources */,
+				FD9E7F322DAAA9B000C6892D /* ContactModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,6 +418,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FD9E7F0F2DAA603700C6892D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD9E7F3E2DAAAE3E00C6892D /* SharedStorage.swift in Sources */,
+				FD9E7F1F2DAA603700C6892D /* family_time_zones_extension.swift in Sources */,
+				FD9E7F3F2DAAAE3E00C6892D /* ContactModel.swift in Sources */,
+				FD9E7F212DAA603700C6892D /* AppIntent.swift in Sources */,
+				FD9E7F402DAAAE3E00C6892D /* ContactsLockScreenWidget.swift in Sources */,
+				FD9E7F412DAAAE3E00C6892D /* ContactsWidgetProvider.swift in Sources */,
+				FD9E7F1B2DAA603700C6892D /* family_time_zones_extensionBundle.swift in Sources */,
+				FD9E7F1D2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -291,6 +445,11 @@
 			isa = PBXTargetDependency;
 			target = FD9E7EE12DAA5B5900C6892D /* family time zones */;
 			targetProxy = FD9E7EFD2DAA5B5A00C6892D /* PBXContainerItemProxy */;
+		};
+		FD9E7F262DAA603800C6892D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FD9E7F122DAA603700C6892D /* family-time-zones-Extension */;
+			targetProxy = FD9E7F252DAA603800C6892D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -417,24 +576,30 @@
 		FD9E7F072DAA5B5A00C6892D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "family time zones/family time zones.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"family time zones/Preview Content\"";
 				DEVELOPMENT_TEAM = B79XZQVVUW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Family Time";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -446,24 +611,30 @@
 		FD9E7F082DAA5B5A00C6892D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "family time zones/family time zones.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"family time zones/Preview Content\"";
 				DEVELOPMENT_TEAM = B79XZQVVUW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Family Time";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -548,6 +719,62 @@
 			};
 			name = Release;
 		};
+		FD9E7F292DAA603800C6892D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "family-time-zones-Extension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "family time zones extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "family time zones extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones.family-time-zones-extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FD9E7F2A2DAA603800C6892D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "family-time-zones-Extension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = B79XZQVVUW;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "family time zones extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "family time zones extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones.family-time-zones-extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -583,6 +810,15 @@
 			buildConfigurations = (
 				FD9E7F0D2DAA5B5A00C6892D /* Debug */,
 				FD9E7F0E2DAA5B5A00C6892D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FD9E7F282DAA603800C6892D /* Build configuration list for PBXNativeTarget "family-time-zones-Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD9E7F292DAA603800C6892D /* Debug */,
+				FD9E7F2A2DAA603800C6892D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
