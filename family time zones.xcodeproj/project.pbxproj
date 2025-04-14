@@ -582,7 +582,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "family time zones/family time zones.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"family time zones/Preview Content\"";
 				DEVELOPMENT_TEAM = B79XZQVVUW;
 				ENABLE_PREVIEWS = YES;
@@ -617,7 +617,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "family time zones/family time zones.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"family time zones/Preview Content\"";
 				DEVELOPMENT_TEAM = B79XZQVVUW;
 				ENABLE_PREVIEWS = YES;
