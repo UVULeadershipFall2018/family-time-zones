@@ -23,18 +23,24 @@ struct ContactsProvider: TimelineProvider {
         let contacts = SharedStorage.loadContacts()
         print("Widget timeline: Loaded \(contacts.count) contacts")
         
-        // Get current date
+        // Current date
         let currentDate = Date()
         
-        // Create an entry for now
+        // Create an entry for the current time
         entries.append(ContactsEntry(date: currentDate, contacts: contacts))
         
-        // Create just one more entry 60 seconds from now to force a refresh
-        if let nextDate = Calendar.current.date(byAdding: .second, value: 60, to: currentDate) {
-            entries.append(ContactsEntry(date: nextDate, contacts: contacts))
+        // Create additional entries every hour for the next 24 hours
+        // This is just for contact data updates, the time display will update automatically
+        let hourInterval = 1
+        let entryCount = 24
+        
+        for hourOffset in 1...entryCount {
+            if let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset * hourInterval, to: currentDate) {
+                entries.append(ContactsEntry(date: entryDate, contacts: contacts))
+            }
         }
         
-        // Set a very aggressive refresh policy - refresh every minute
+        // Set refresh policy with a reasonable interval, as the Text view will handle live time updates
         let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
@@ -85,7 +91,8 @@ struct ContactsWidgetEntryView : View {
                     
                     Spacer()
                     
-                    Text(formattedTime(for: contact, at: entry.date))
+                    Text(Date(), style: .time)
+                        .environment(\.timeZone, contact.timeZone)
                         .font(.caption)
                         .monospacedDigit()
                 }
@@ -94,16 +101,6 @@ struct ContactsWidgetEntryView : View {
         }
         .padding()
         .containerBackground(.fill.tertiary, for: .widget)
-    }
-    
-    // Format time for a specific entry date
-    private func formattedTime(for contact: Contact, at date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = contact.timeZone
-        formatter.dateFormat = "h:mm a"
-        
-        // Always use the absolute latest time
-        return formatter.string(from: Date())
     }
     
     // Helper function to convert string to Color

@@ -52,7 +52,8 @@ struct ContactsLockScreenView: View {
                     
                     Spacer()
                     
-                    Text(formattedTime(for: contact, at: entry.date))
+                    Text(Date(), style: .time)
+                        .environment(\.timeZone, contact.timeZone)
                         .font(.system(size: 11))
                         .monospacedDigit()
                 }
@@ -63,7 +64,13 @@ struct ContactsLockScreenView: View {
     
     var inlineView: some View {
         if let contact = entry.contacts.first {
-            Text("\(contact.name): \(formattedTime(for: contact, at: entry.date)) (\(contact.locationName()))")
+            Text("\(contact.name): ")
+                .foregroundColor(.primary) +
+            Text(Date(), style: .time)
+                .environment(\.timeZone, contact.timeZone)
+                .foregroundColor(.primary) +
+            Text(" (\(contact.locationName()))")
+                .foregroundColor(.secondary)
         } else {
             Text("No contacts")
         }
@@ -79,7 +86,8 @@ struct ContactsLockScreenView: View {
                     Text(String(contact.name.prefix(3)))
                         .font(.system(size: 8))
                     
-                    Text(formattedTime(for: contact, at: entry.date))
+                    Text(Date(), style: .time)
+                        .environment(\.timeZone, contact.timeZone)
                         .font(.system(size: 10, weight: .bold))
                         .monospacedDigit()
                         
@@ -94,23 +102,6 @@ struct ContactsLockScreenView: View {
                         .font(.system(size: 12, weight: .bold))
                 }
             }
-        }
-    }
-    
-    // Format time for a specific entry date
-    private func formattedTime(for contact: Contact, at date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = contact.timeZone
-        
-        // For lock screen widgets, show exact time
-        if family == .accessoryCircular {
-            // For circular, just show hours:minutes
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        } else {
-            // For rectangular and inline, include seconds for perfect synchronization
-            formatter.dateFormat = "h:mm:ss a"
-            return formatter.string(from: date)
         }
     }
     
