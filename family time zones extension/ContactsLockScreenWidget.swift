@@ -63,16 +63,20 @@ struct ContactsLockScreenView: View {
     }
     
     var inlineView: some View {
-        if let contact = entry.contacts.first {
-            Text("\(contact.name): ")
-                .foregroundColor(.primary) +
-            Text(Date(), style: .time)
-                .environment(\.timeZone, contact.timeZone)
-                .foregroundColor(.primary) +
-            Text(" (\(contact.locationName()))")
-                .foregroundColor(.secondary)
-        } else {
-            Text("No contacts")
+        Group {
+            if let contact = entry.contacts.first {
+                HStack(spacing: 0) {
+                    Text("\(contact.name): ")
+                    Text(Date(), style: .time)
+                        .environment(\.timeZone, contact.timeZone)
+                    Text(" (\(contact.locationName()))")
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                HStack {
+                    Text("No contacts")
+                }
+            }
         }
     }
     
