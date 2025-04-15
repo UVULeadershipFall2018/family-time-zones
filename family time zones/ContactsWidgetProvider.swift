@@ -2,6 +2,8 @@ import WidgetKit
 import SwiftUI
 
 struct Provider: TimelineProvider {
+    typealias Entry = ContactsEntry
+    
     func placeholder(in context: Context) -> ContactsEntry {
         ContactsEntry(date: Date(), contacts: getSampleContacts())
     }
