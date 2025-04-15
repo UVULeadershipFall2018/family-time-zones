@@ -29,19 +29,16 @@ struct ContactsProvider: TimelineProvider {
         // Create an entry for the current time
         entries.append(ContactsEntry(date: currentDate, contacts: contacts))
         
-        // Create additional entries every hour for the next 24 hours
-        // This is just for contact data updates, the time display will update automatically
-        let hourInterval = 1
-        let entryCount = 24
-        
-        for hourOffset in 1...entryCount {
-            if let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset * hourInterval, to: currentDate) {
+        // Create an entry every minute for the next 10 minutes (for testing in simulator)
+        for minuteOffset in 1...10 {
+            if let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate) {
                 entries.append(ContactsEntry(date: entryDate, contacts: contacts))
             }
         }
         
-        // Set refresh policy with a reasonable interval, as the Text view will handle live time updates
-        let timeline = Timeline(entries: entries, policy: .atEnd)
+        // For simulator testing, use a very aggressive refresh policy
+        let refreshDate = Calendar.current.date(byAdding: .minute, value: 1, to: currentDate) ?? currentDate
+        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
         completion(timeline)
     }
     
@@ -91,16 +88,32 @@ struct ContactsWidgetEntryView : View {
                     
                     Spacer()
                     
-                    Text(Date(), style: .time)
-                        .environment(\.timeZone, contact.timeZone)
-                        .font(.caption)
-                        .monospacedDigit()
+                    VStack(alignment: .trailing, spacing: 0) {
+                        // Use dynamic date that should auto-update
+                        Text(Date(), style: .time)
+                            .environment(\.timeZone, contact.timeZone)
+                            .font(.caption)
+                            .monospacedDigit()
+                        
+                        // Also show entry.date as a fallback for simulator testing
+                        Text("e: \(timeString(for: contact, date: entry.date))")
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray)
+                    }
                 }
                 .padding(.vertical, 2)
             }
         }
         .padding()
         .containerBackground(.fill.tertiary, for: .widget)
+    }
+    
+    // Helper for displaying entry date directly
+    private func timeString(for contact: Contact, date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = contact.timeZone
+        formatter.dateFormat = "h:mm"
+        return formatter.string(from: date)
     }
     
     // Helper function to convert string to Color

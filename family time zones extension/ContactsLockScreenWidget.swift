@@ -52,10 +52,17 @@ struct ContactsLockScreenView: View {
                     
                     Spacer()
                     
-                    Text(Date(), style: .time)
-                        .environment(\.timeZone, contact.timeZone)
-                        .font(.system(size: 11))
-                        .monospacedDigit()
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(Date(), style: .time)
+                            .environment(\.timeZone, contact.timeZone)
+                            .font(.system(size: 11))
+                            .monospacedDigit()
+                        
+                        // Debug line showing entry time
+                        Text("e: \(timeString(for: contact, date: entry.date))")
+                            .font(.system(size: 6))
+                            .foregroundColor(.gray)
+                    }
                 }
             }
         }
@@ -107,6 +114,14 @@ struct ContactsLockScreenView: View {
                 }
             }
         }
+    }
+    
+    // Helper for displaying entry date directly
+    private func timeString(for contact: Contact, date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = contact.timeZone
+        formatter.dateFormat = "h:mm"
+        return formatter.string(from: date)
     }
     
     // Helper function to convert string to Color
