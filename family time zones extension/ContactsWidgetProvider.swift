@@ -23,43 +23,19 @@ struct ContactsProvider: TimelineProvider {
         let contacts = SharedStorage.loadContacts()
         print("Widget timeline: Loaded \(contacts.count) contacts")
         
-        // Use current date, ensuring we're using the exact current time
+        // Get current date
         let currentDate = Date()
-        let calendar = Calendar.current
         
-        // Create entry for the exact current time to ensure immediate update
+        // Create an entry for now
         entries.append(ContactsEntry(date: currentDate, contacts: contacts))
         
-        // Create entries aligned to minute boundaries for better synchronization
-        // First, find the next minute boundary
-        var nextMinuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: currentDate)
-        nextMinuteComponents.minute! += 1
-        nextMinuteComponents.second = 0
-        
-        guard let nextMinuteDate = calendar.date(from: nextMinuteComponents) else {
-            // Fallback if date creation fails
-            let timeline = Timeline(entries: entries, policy: .atEnd)
-            completion(timeline)
-            return
+        // Create just one more entry 60 seconds from now to force a refresh
+        if let nextDate = Calendar.current.date(byAdding: .second, value: 60, to: currentDate) {
+            entries.append(ContactsEntry(date: nextDate, contacts: contacts))
         }
         
-        // Create entries at each minute for first 5 minutes for responsive updates
-        for minuteOffset in 0..<5 {
-            if let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: nextMinuteDate) {
-                entries.append(ContactsEntry(date: entryDate, contacts: contacts))
-            }
-        }
-        
-        // Then every 5 minutes for up to an hour for efficiency
-        for minuteOffset in stride(from: 10, through: 60, by: 5) {
-            if let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: nextMinuteDate) {
-                entries.append(ContactsEntry(date: entryDate, contacts: contacts))
-            }
-        }
-
-        // Use after date policy with reasonable refresh date
-        let refreshDate = calendar.date(byAdding: .minute, value: 15, to: currentDate) ?? currentDate
-        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
+        // Set a very aggressive refresh policy - refresh every minute
+        let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
     
@@ -124,8 +100,10 @@ struct ContactsWidgetEntryView : View {
     private func formattedTime(for contact: Contact, at date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = contact.timeZone
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        formatter.dateFormat = "h:mm a"
+        
+        // Always use the absolute latest time
+        return formatter.string(from: Date())
     }
     
     // Helper function to convert string to Color
@@ -168,6 +146,7 @@ struct ContactsWidget: Widget {
         .configurationDisplayName("Family Time Zones")
         .description("Shows the current time for your family and friends around the world.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
