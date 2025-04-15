@@ -18,7 +18,6 @@
 		FD9E7F182DAA603700C6892D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD9E7F172DAA603700C6892D /* SwiftUI.framework */; };
 		FD9E7F1B2DAA603700C6892D /* family_time_zones_extensionBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F1A2DAA603700C6892D /* family_time_zones_extensionBundle.swift */; };
 		FD9E7F1D2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F1C2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift */; };
-		FD9E7F1F2DAA603700C6892D /* family_time_zones_extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F1E2DAA603700C6892D /* family_time_zones_extension.swift */; };
 		FD9E7F212DAA603700C6892D /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F202DAA603700C6892D /* AppIntent.swift */; };
 		FD9E7F232DAA603800C6892D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FD9E7F222DAA603800C6892D /* Assets.xcassets */; };
 		FD9E7F272DAA603800C6892D /* family-time-zones-Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FD9E7F132DAA603700C6892D /* family-time-zones-Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -87,7 +86,6 @@
 		FD9E7F172DAA603700C6892D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		FD9E7F1A2DAA603700C6892D /* family_time_zones_extensionBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zones_extensionBundle.swift; sourceTree = "<group>"; };
 		FD9E7F1C2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zones_extensionLiveActivity.swift; sourceTree = "<group>"; };
-		FD9E7F1E2DAA603700C6892D /* family_time_zones_extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = family_time_zones_extension.swift; sourceTree = "<group>"; };
 		FD9E7F202DAA603700C6892D /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntent.swift; sourceTree = "<group>"; };
 		FD9E7F222DAA603800C6892D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FD9E7F242DAA603800C6892D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -222,7 +220,6 @@
 				FD9E7F3A2DAAAE3E00C6892D /* SharedStorage.swift */,
 				FD9E7F1A2DAA603700C6892D /* family_time_zones_extensionBundle.swift */,
 				FD9E7F1C2DAA603700C6892D /* family_time_zones_extensionLiveActivity.swift */,
-				FD9E7F1E2DAA603700C6892D /* family_time_zones_extension.swift */,
 				FD9E7F202DAA603700C6892D /* AppIntent.swift */,
 				FD9E7F222DAA603800C6892D /* Assets.xcassets */,
 				FD9E7F242DAA603800C6892D /* Info.plist */,
@@ -423,7 +420,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				FD9E7F3E2DAAAE3E00C6892D /* SharedStorage.swift in Sources */,
-				FD9E7F1F2DAA603700C6892D /* family_time_zones_extension.swift in Sources */,
 				FD9E7F3F2DAAAE3E00C6892D /* ContactModel.swift in Sources */,
 				FD9E7F212DAA603700C6892D /* AppIntent.swift in Sources */,
 				FD9E7F402DAAAE3E00C6892D /* ContactsLockScreenWidget.swift in Sources */,
