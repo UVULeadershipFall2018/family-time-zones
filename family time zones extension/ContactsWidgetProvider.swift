@@ -88,18 +88,8 @@ struct ContactsWidgetEntryView : View {
                     
                     Spacer()
                     
-                    VStack(alignment: .trailing, spacing: 0) {
-                        // Use dynamic date that should auto-update
-                        Text(Date(), style: .time)
-                            .environment(\.timeZone, contact.timeZone)
-                            .font(.caption)
-                            .monospacedDigit()
-                        
-                        // Also show entry.date as a fallback for simulator testing
-                        Text("e: \(timeString(for: contact, date: entry.date))")
-                            .font(.system(size: 8))
-                            .foregroundColor(.gray)
-                    }
+                    // Display the time in the correct time zone
+                    TimeZoneAdjustedTimeView(timeZone: contact.timeZone)
                 }
                 .padding(.vertical, 2)
             }
@@ -143,6 +133,25 @@ struct ContactsWidgetEntryView : View {
         default:
             return Array(entry.contacts.prefix(3))
         }
+    }
+}
+
+// Special view that properly handles time zone display
+struct TimeZoneAdjustedTimeView: View {
+    let timeZone: TimeZone
+    
+    // Get a date that's adjusted for the time zone
+    private var adjustedDate: Date {
+        // We'll use the current date, the view itself will apply the time zone
+        return Date()
+    }
+    
+    var body: some View {
+        // Force a specific time zone environment for this view
+        Text(adjustedDate, style: .time)
+            .environment(\.timeZone, timeZone)
+            .font(.caption)
+            .monospacedDigit()
     }
 }
 

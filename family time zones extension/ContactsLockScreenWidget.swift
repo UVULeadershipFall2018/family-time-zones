@@ -33,85 +33,57 @@ struct ContactsLockScreenView: View {
     }
     
     var rectangularView: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(entry.contacts.prefix(3))) { contact in
-                HStack {
-                    Circle()
-                        .fill(colorFromString(contact.color))
-                        .frame(width: 6, height: 6)
-                    
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(contact.name.split(separator: " ").first ?? "")
-                            .font(.system(size: 10))
-                            .fontWeight(.medium)
-                        
-                        Text(contact.locationName())
-                            .font(.system(size: 7))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 0) {
-                        Text(Date(), style: .time)
-                            .environment(\.timeZone, contact.timeZone)
-                            .font(.system(size: 11))
-                            .monospacedDigit()
-                        
-                        // Debug line showing entry time
-                        Text("e: \(timeString(for: contact, date: entry.date))")
-                            .font(.system(size: 6))
-                            .foregroundColor(.gray)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Family Time Zones")
+                .font(.system(size: 12))
+                .fontWeight(.bold)
+            
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    let contactCount = min(entry.contacts.count, 3)
+                    ForEach(0..<contactCount, id: \.self) { index in
+                        let contact = entry.contacts[index]
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(colorFromString(contact.color))
+                                .frame(width: 6, height: 6)
+                            
+                            Text(contact.name.split(separator: " ").first ?? "")
+                                .font(.system(size: 10))
+                        }
                     }
                 }
+                
+                Spacer()
+                
+                Image(systemName: "clock")
+                    .font(.system(size: 16))
+            }
+            
+            if entry.contacts.count > 3 {
+                Text("+ \(entry.contacts.count - 3) more")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 4)
+        .padding(8)
     }
     
     var inlineView: some View {
-        Group {
-            if let contact = entry.contacts.first {
-                HStack(spacing: 0) {
-                    Text("\(contact.name): ")
-                    Text(Date(), style: .time)
-                        .environment(\.timeZone, contact.timeZone)
-                    Text(" (\(contact.locationName()))")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                HStack {
-                    Text("No contacts")
-                }
-            }
-        }
+        Text("Family Times")
+            .fontWeight(.medium)
     }
     
     var circularView: some View {
         ZStack {
             Circle()
-                .stroke(entry.contacts.first.map { colorFromString($0.color) } ?? Color.gray, lineWidth: 2)
+                .stroke(Color.blue, lineWidth: 2)
             
             VStack(spacing: 0) {
-                if let contact = entry.contacts.first {
-                    Text(String(contact.name.prefix(3)))
-                        .font(.system(size: 8))
-                    
-                    Text(Date(), style: .time)
-                        .environment(\.timeZone, contact.timeZone)
-                        .font(.system(size: 10, weight: .bold))
-                        .monospacedDigit()
-                        
-                    Text(contact.locationName().prefix(5))
-                        .font(.system(size: 6))
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("No")
-                        .font(.system(size: 8))
-                    
-                    Text("data")
-                        .font(.system(size: 12, weight: .bold))
-                }
+                Text("Family")
+                    .font(.system(size: 8))
+                Text("Times")
+                    .font(.system(size: 10, weight: .bold))
             }
         }
     }
