@@ -25,20 +25,37 @@ struct ContactsProvider: TimelineProvider {
         
         // Current date
         let currentDate = Date()
+        let calendar = Calendar.current
         
-        // Create an entry for the current time
+        // Calculate current seconds to determine time until next minute
+        let currentSeconds = calendar.component(.second, from: currentDate)
+        print("Current seconds: \(currentSeconds)")
+        
+        // Create an immediate entry
         entries.append(ContactsEntry(date: currentDate, contacts: contacts))
         
-        // Create an entry every minute for the next 10 minutes (for testing in simulator)
-        for minuteOffset in 1...10 {
-            if let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate) {
+        // Create entries at exact minute boundaries for the next 60 minutes
+        var nextMinuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: currentDate)
+        nextMinuteComponents.minute! += 1
+        nextMinuteComponents.second = 0
+        
+        guard let nextMinuteDate = calendar.date(from: nextMinuteComponents) else {
+            // Fallback - just use a simple timeline
+            let timeline = Timeline(entries: entries, policy: .atEnd)
+            completion(timeline)
+            return
+        }
+        
+        // Add entries at exact minute boundaries
+        for minuteOffset in 0..<60 {
+            if let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: nextMinuteDate) {
                 entries.append(ContactsEntry(date: entryDate, contacts: contacts))
+                print("Added minute-boundary entry at: \(entryDate)")
             }
         }
         
-        // For simulator testing, use a very aggressive refresh policy
-        let refreshDate = Calendar.current.date(byAdding: .minute, value: 1, to: currentDate) ?? currentDate
-        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
+        // Set refresh policy to update on the next minute boundary
+        let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
     
@@ -89,7 +106,7 @@ struct ContactsWidgetEntryView : View {
                     Spacer()
                     
                     // Display the time in the correct time zone
-                    TimeZoneAdjustedTimeView(timeZone: contact.timeZone)
+                    TimeZoneAdjustedTimeView(timeZone: contact.timeZone, date: entry.date)
                 }
                 .padding(.vertical, 2)
             }
@@ -139,19 +156,23 @@ struct ContactsWidgetEntryView : View {
 // Special view that properly handles time zone display
 struct TimeZoneAdjustedTimeView: View {
     let timeZone: TimeZone
-    
-    // Get a date that's adjusted for the time zone
-    private var adjustedDate: Date {
-        // We'll use the current date, the view itself will apply the time zone
-        return Date()
-    }
+    let date: Date  // Use the entry date passed from the timeline
     
     var body: some View {
-        // Force a specific time zone environment for this view
-        Text(adjustedDate, style: .time)
-            .environment(\.timeZone, timeZone)
+        // Use a more explicit approach with DateFormatter instead of relying on environment
+        let formattedTime = formatTimeForTimeZone(timeZone, date: date)
+        
+        Text(formattedTime)
             .font(.caption)
             .monospacedDigit()
+    }
+    
+    // Explicitly format the time for the given time zone
+    private func formatTimeForTimeZone(_ timeZone: TimeZone, date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.timeZone = timeZone
+        return formatter.string(from: date)
     }
 }
 
