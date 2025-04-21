@@ -5,6 +5,9 @@ struct Contact: Identifiable, Codable, Hashable {
     var name: String
     var timeZoneIdentifier: String
     var color: String // Store color as string representation
+    var useLocationTracking: Bool = false // Whether to use Find My location
+    var appleIdEmail: String? // The Apple ID email for Find My
+    var lastLocationUpdate: Date? // When the location was last updated
     
     var timeZone: TimeZone {
         TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
@@ -60,5 +63,20 @@ struct Contact: Identifiable, Codable, Hashable {
             return components.last?.replacingOccurrences(of: "_", with: " ") ?? timeZoneIdentifier
         }
         return timeZoneIdentifier
+    }
+    
+    // Display string indicating if location tracking is enabled
+    var locationTrackingStatus: String {
+        if useLocationTracking {
+            if let lastUpdate = lastLocationUpdate {
+                let formatter = RelativeDateTimeFormatter()
+                formatter.unitsStyle = .short
+                return "Auto-updated \(formatter.localizedString(for: lastUpdate, relativeTo: Date()))"
+            } else {
+                return "Auto-update enabled, waiting for location"
+            }
+        } else {
+            return "Manual time zone"
+        }
     }
 } 

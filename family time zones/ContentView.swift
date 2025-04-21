@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var newContactTimeZone = TimeZone.current.identifier
     @State private var newContactColor = "blue"
     @State private var searchText = ""
+    @State private var useLocationTracking = false
+    @State private var selectedAppleIdEmail: String?
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
@@ -74,12 +76,44 @@ struct ContentView: View {
                     .padding(.vertical, 5)
                 }
                 
-                Section(header: Text("Time Zone")) {
-                    TextField("Search Time Zones", text: $searchText)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
+                Section(header: Text("Location Tracking")) {
+                    Toggle("Use Location for Time Zone", isOn: $useLocationTracking)
                     
-                    timeZoneListView
+                    if useLocationTracking {
+                        Text("Select the person who shares their location with you:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        FindMyContactPicker(selectedEmail: $selectedAppleIdEmail)
+                    }
+                }
+                
+                Section(header: Text("Time Zone")) {
+                    if !useLocationTracking {
+                        TextField("Search Time Zones", text: $searchText)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                        
+                        timeZoneListView
+                    } else if let email = selectedAppleIdEmail, 
+                              let contact = viewModel.locationManager.findMyContacts.first(where: { $0.email == email }),
+                              let timeZone = contact.timeZone {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(formatTimeZoneForDisplay(timeZone.identifier))
+                                    .fontWeight(.bold)
+                                Text("Automatically set based on location")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "location.fill")
+                                .foregroundColor(.blue)
+                        }
+                    } else if useLocationTracking {
+                        Text("Select a contact who shares their location with you")
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             .navigationTitle(isEditingContact ? "Edit Contact" : "Add New Contact")
@@ -91,7 +125,7 @@ struct ContentView: View {
                 trailing: Button(isEditingContact ? "Save" : "Add") {
                     saveContactAction()
                 }
-                .disabled(newContactName.isEmpty)
+                .disabled(newContactName.isEmpty || (useLocationTracking && selectedAppleIdEmail == nil))
             )
         }
     }
@@ -174,19 +208,40 @@ struct ContentView: View {
     }
     
     private func saveContactAction() {
+        // Get the correct time zone based on selection
+        var timeZoneIdentifier = newContactTimeZone
+        if useLocationTracking,
+           let email = selectedAppleIdEmail,
+           let contact = viewModel.locationManager.findMyContacts.first(where: { $0.email == email }),
+           let timeZone = contact.timeZone {
+            timeZoneIdentifier = timeZone.identifier
+        }
+        
         if isEditingContact, let index = editingContactIndex {
             viewModel.updateContact(
                 at: index,
                 name: newContactName,
-                timeZoneIdentifier: newContactTimeZone,
+                timeZoneIdentifier: timeZoneIdentifier,
                 color: newContactColor
+            )
+            
+            // Update location tracking settings separately
+            viewModel.updateContactLocationSettings(
+                at: index,
+                useLocationTracking: useLocationTracking,
+                appleIdEmail: selectedAppleIdEmail
             )
         } else {
-            viewModel.addContact(
+            // Add new contact
+            let newContact = Contact(
                 name: newContactName,
-                timeZoneIdentifier: newContactTimeZone,
-                color: newContactColor
+                timeZoneIdentifier: timeZoneIdentifier,
+                color: newContactColor,
+                useLocationTracking: useLocationTracking,
+                appleIdEmail: selectedAppleIdEmail
             )
+            viewModel.contacts.append(newContact)
+            viewModel.saveContacts()
         }
         
         // Force widget refresh
@@ -312,6 +367,8 @@ struct ContentView: View {
         newContactName = contact.name
         newContactTimeZone = contact.timeZoneIdentifier
         newContactColor = contact.color
+        useLocationTracking = contact.useLocationTracking
+        selectedAppleIdEmail = contact.appleIdEmail
         editingContactIndex = contactIndex
         isEditingContact = true
         showingAddContact = true
@@ -331,6 +388,8 @@ struct ContentView: View {
         searchText = ""
         isEditingContact = false
         editingContactIndex = nil
+        useLocationTracking = false
+        selectedAppleIdEmail = nil
     }
 }
 
@@ -357,11 +416,29 @@ struct ContactRow: View {
                     Text(contact.timeOffset())
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    
+                    if contact.useLocationTracking {
+                        Image(systemName: "location.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                    }
                 }
                 
-                Text(contact.locationName())
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                HStack {
+                    Text(contact.locationName())
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    if contact.useLocationTracking {
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text(contact.locationTrackingStatus)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
         .padding(.vertical, 4)
