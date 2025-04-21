@@ -124,7 +124,7 @@ class ContactViewModel: ObservableObject {
         print("Reordered contacts and refreshed widget")
     }
     
-    private func saveContacts() {
+    func saveContacts() {
         SharedStorage.saveContacts(contacts)
     }
     

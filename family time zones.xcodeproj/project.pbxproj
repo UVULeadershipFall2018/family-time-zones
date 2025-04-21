@@ -30,6 +30,8 @@
 		FD9E7F3F2DAAAE3E00C6892D /* ContactModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3B2DAAAE3E00C6892D /* ContactModel.swift */; };
 		FD9E7F402DAAAE3E00C6892D /* ContactsLockScreenWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3C2DAAAE3E00C6892D /* ContactsLockScreenWidget.swift */; };
 		FD9E7F412DAAAE3E00C6892D /* ContactsWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */; };
+		FD9E7F442DB6F2E000C6892D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F422DB6F2E000C6892D /* LocationManager.swift */; };
+		FD9E7F452DB6F2E000C6892D /* FindMyContactPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +102,8 @@
 		FD9E7F3B2DAAAE3E00C6892D /* ContactModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactModel.swift; sourceTree = "<group>"; };
 		FD9E7F3C2DAAAE3E00C6892D /* ContactsLockScreenWidget.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsLockScreenWidget.swift; sourceTree = "<group>"; };
 		FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsWidgetProvider.swift; sourceTree = "<group>"; };
+		FD9E7F422DB6F2E000C6892D /* LocationManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FindMyContactPicker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,6 +168,8 @@
 			isa = PBXGroup;
 			children = (
 				FD9E7F382DAAAD9800C6892D /* family time zones.entitlements */,
+				FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */,
+				FD9E7F422DB6F2E000C6892D /* LocationManager.swift */,
 				FD9E7F2C2DAAA9B000C6892D /* ContactModel.swift */,
 				FD9E7F312DAAA9B000C6892D /* ContactsWidgetProvider.swift */,
 				FD9E7F302DAAA9B000C6892D /* ContactViewModel.swift */,
@@ -392,6 +398,8 @@
 				FD9E7EE62DAA5B5900C6892D /* family_time_zonesApp.swift in Sources */,
 				FD9E7F352DAAA9B000C6892D /* SharedStorage.swift in Sources */,
 				FD9E7F342DAAA9B000C6892D /* FamilyTimeZoneWidget.swift in Sources */,
+				FD9E7F452DB6F2E000C6892D /* FindMyContactPicker.swift in Sources */,
+				FD9E7F442DB6F2E000C6892D /* LocationManager.swift in Sources */,
 				FD9E7F362DAAA9B000C6892D /* ContactViewModel.swift in Sources */,
 				FD9E7F372DAAA9B000C6892D /* ContactsWidgetProvider.swift in Sources */,
 				FD9E7F322DAAA9B000C6892D /* ContactModel.swift in Sources */,
@@ -595,7 +603,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -630,7 +638,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "TnT.family-time-zones";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

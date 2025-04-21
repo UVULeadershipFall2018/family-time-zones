@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FindMyContactPicker: View {
-    @EnvironmentObject var viewModel: ContactViewModel
+    var viewModel: ContactViewModel
     @Binding var selectedEmail: String?
     
     var body: some View {

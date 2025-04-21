@@ -19,6 +19,9 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var useLocationTracking = false
     @State private var selectedAppleIdEmail: String?
+    @State private var hasAvailabilityWindow = false
+    @State private var availableStartTime = 0
+    @State private var availableEndTime = 24
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
@@ -84,7 +87,37 @@ struct ContentView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        FindMyContactPicker(selectedEmail: $selectedAppleIdEmail)
+                        FindMyContactPicker(viewModel: viewModel, selectedEmail: $selectedAppleIdEmail)
+                    }
+                }
+                
+                Section(header: Text("Availability Window")) {
+                    Toggle("Set Availability Hours", isOn: $hasAvailabilityWindow)
+                    
+                    if hasAvailabilityWindow {
+                        HStack {
+                            Text("Start Time")
+                            Spacer()
+                            TimePicker(minutes: $availableStartTime)
+                        }
+                        
+                        HStack {
+                            Text("End Time")
+                            Spacer()
+                            TimePicker(minutes: $availableEndTime)
+                        }
+                        
+                        Text("Contact's local time (\(formatTimeZoneForDisplay(newContactTimeZone)))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        let isCurrentlyAvailable = checkAvailability()
+                        HStack {
+                            Text("Current Status:")
+                            Text(isCurrentlyAvailable ? "Available" : "Unavailable")
+                                .foregroundColor(isCurrentlyAvailable ? .green : .red)
+                                .fontWeight(.bold)
+                        }
                     }
                 }
                 
@@ -218,19 +251,19 @@ struct ContentView: View {
         }
         
         if isEditingContact, let index = editingContactIndex {
-            viewModel.updateContact(
-                at: index,
-                name: newContactName,
-                timeZoneIdentifier: timeZoneIdentifier,
-                color: newContactColor
-            )
+            // Update the existing contact
+            var updatedContact = viewModel.contacts[index]
+            updatedContact.name = newContactName
+            updatedContact.timeZoneIdentifier = timeZoneIdentifier
+            updatedContact.color = newContactColor
+            updatedContact.useLocationTracking = useLocationTracking
+            updatedContact.appleIdEmail = selectedAppleIdEmail
+            updatedContact.hasAvailabilityWindow = hasAvailabilityWindow
+            updatedContact.availableStartTime = availableStartTime
+            updatedContact.availableEndTime = availableEndTime
             
-            // Update location tracking settings separately
-            viewModel.updateContactLocationSettings(
-                at: index,
-                useLocationTracking: useLocationTracking,
-                appleIdEmail: selectedAppleIdEmail
-            )
+            viewModel.contacts[index] = updatedContact
+            viewModel.saveContacts()
         } else {
             // Add new contact
             let newContact = Contact(
@@ -238,7 +271,10 @@ struct ContentView: View {
                 timeZoneIdentifier: timeZoneIdentifier,
                 color: newContactColor,
                 useLocationTracking: useLocationTracking,
-                appleIdEmail: selectedAppleIdEmail
+                appleIdEmail: selectedAppleIdEmail,
+                hasAvailabilityWindow: hasAvailabilityWindow,
+                availableStartTime: availableStartTime,
+                availableEndTime: availableEndTime
             )
             viewModel.contacts.append(newContact)
             viewModel.saveContacts()
@@ -369,6 +405,9 @@ struct ContentView: View {
         newContactColor = contact.color
         useLocationTracking = contact.useLocationTracking
         selectedAppleIdEmail = contact.appleIdEmail
+        hasAvailabilityWindow = contact.hasAvailabilityWindow
+        availableStartTime = contact.availableStartTime
+        availableEndTime = contact.availableEndTime
         editingContactIndex = contactIndex
         isEditingContact = true
         showingAddContact = true
@@ -390,61 +429,144 @@ struct ContentView: View {
         editingContactIndex = nil
         useLocationTracking = false
         selectedAppleIdEmail = nil
+        hasAvailabilityWindow = false
+        availableStartTime = 8 * 60 // 8:00 AM
+        availableEndTime = 22 * 60 // 10:00 PM
+    }
+    
+    private func checkAvailability() -> Bool {
+        // Create a temporary contact with the current form values to check availability
+        let tempContact = Contact(
+            name: newContactName,
+            timeZoneIdentifier: newContactTimeZone,
+            color: newContactColor,
+            hasAvailabilityWindow: hasAvailabilityWindow,
+            availableStartTime: availableStartTime,
+            availableEndTime: availableEndTime
+        )
+        
+        return tempContact.isAvailable()
     }
 }
 
 struct ContactRow: View {
     let contact: Contact
     @State private var currentTime = Date()
+    @State private var showingMessageConfirmation = false
+    @State private var messageText = ""
+    @State private var showingMessageComposer = false
     let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        HStack {
-            Circle()
-                .fill(colorFromString(contact.color))
-                .frame(width: 12, height: 12)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(contact.name)
-                    .font(.headline)
+        VStack(alignment: .leading) {
+            HStack {
+                Circle()
+                    .fill(colorFromString(contact.color))
+                    .frame(width: 12, height: 12)
                 
-                HStack {
-                    Text(contact.formattedTime(at: currentTime))
-                        .font(.title2)
-                        .monospacedDigit()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(contact.name)
+                        .font(.headline)
                     
-                    Text(contact.timeOffset())
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if contact.useLocationTracking {
-                        Image(systemName: "location.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption)
-                    }
-                }
-                
-                HStack {
-                    Text(contact.locationName())
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if contact.useLocationTracking {
-                        Text("•")
+                    HStack {
+                        Text(contact.formattedTime(at: currentTime))
+                            .font(.title2)
+                            .monospacedDigit()
+                        
+                        Text(contact.timeOffset())
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Text(contact.locationTrackingStatus)
+                        if contact.useLocationTracking {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                        }
+                        
+                        if contact.hasAvailabilityWindow {
+                            Spacer()
+                            availabilityBadge
+                        }
+                    }
+                    
+                    HStack {
+                        Text(contact.locationName())
                             .font(.caption)
                             .foregroundColor(.secondary)
+                        
+                        if contact.useLocationTracking {
+                            Text("•")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text(contact.locationTrackingStatus)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        if contact.hasAvailabilityWindow {
+                            Spacer()
+                            Text(contact.formattedAvailabilityWindow())
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
+                
+                Spacer()
+                
+                Button(action: {
+                    initiateMessage()
+                }) {
+                    Image(systemName: "message.fill")
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(BorderlessButtonStyle())
             }
         }
         .padding(.vertical, 4)
         .onReceive(timer) { _ in
             currentTime = Date()
         }
+        .alert(isPresented: $showingMessageConfirmation) {
+            Alert(
+                title: Text("Outside Availability Window"),
+                message: Text("\(contact.name) is not available right now. They are usually available between \(contact.formattedAvailabilityWindow()). Would you still like to send a message?"),
+                primaryButton: .default(Text("Send Anyway")) {
+                    composeMessage()
+                },
+                secondaryButton: .cancel()
+            )
+        }
+        .sheet(isPresented: $showingMessageComposer) {
+            MessageComposerView(contact: contact, message: $messageText)
+        }
+    }
+    
+    private func initiateMessage() {
+        // Check if contact is available
+        if contact.hasAvailabilityWindow && !contact.isAvailable() {
+            // Show confirmation alert if outside availability window
+            showingMessageConfirmation = true
+        } else {
+            // Directly proceed to messaging if available
+            composeMessage()
+        }
+    }
+    
+    private func composeMessage() {
+        showingMessageComposer = true
+    }
+    
+    private var availabilityBadge: some View {
+        let isAvailable = contact.isAvailable(at: currentTime)
+        return Text(isAvailable ? "Available" : "Unavailable")
+            .font(.caption2)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(isAvailable ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+            .foregroundColor(isAvailable ? .green : .red)
+            .cornerRadius(4)
     }
     
     // Helper function to convert string to Color
@@ -459,6 +581,107 @@ struct ContactRow: View {
         case "yellow": return .yellow
         case "gray", "grey": return .gray
         default: return .blue
+        }
+    }
+}
+
+struct MessageComposerView: View {
+    let contact: Contact
+    @Binding var message: String
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                Text("To: \(contact.name)")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                
+                TextEditor(text: $message)
+                    .padding()
+                    .frame(minHeight: 200)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
+                    .padding()
+                
+                if contact.hasAvailabilityWindow && !contact.isAvailable() {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Note: \(contact.name) is outside their usual availability hours.")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal)
+                }
+                
+                Spacer()
+            }
+            .navigationBarTitle("New Message", displayMode: .inline)
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Send") {
+                    sendMessage()
+                    presentationMode.wrappedValue.dismiss()
+                }
+                .disabled(message.isEmpty)
+            )
+        }
+    }
+    
+    private func sendMessage() {
+        // In a real app, this would integrate with messaging APIs
+        print("Sending message to \(contact.name): \(message)")
+        message = ""
+    }
+}
+
+// TimePicker component for selecting hours and minutes
+struct TimePicker: View {
+    @Binding var minutes: Int
+    @State private var hourValue: Int
+    @State private var minuteValue: Int
+    
+    init(minutes: Binding<Int>) {
+        self._minutes = minutes
+        let initialValue = minutes.wrappedValue
+        self._hourValue = State(initialValue: initialValue / 60)
+        self._minuteValue = State(initialValue: initialValue % 60)
+    }
+    
+    var body: some View {
+        HStack {
+            Picker("Hour", selection: $hourValue) {
+                ForEach(0..<24) { hour in
+                    Text("\(hour)").tag(hour)
+                }
+            }
+            .pickerStyle(WheelPickerStyle())
+            .frame(width: 60)
+            .clipped()
+            .onChange(of: hourValue) { newValue in
+                minutes = (newValue * 60) + minuteValue
+            }
+            
+            Text(":")
+                .font(.headline)
+            
+            Picker("Minute", selection: $minuteValue) {
+                ForEach(0..<60) { minute in
+                    Text(String(format: "%02d", minute)).tag(minute)
+                }
+            }
+            .pickerStyle(WheelPickerStyle())
+            .frame(width: 60)
+            .clipped()
+            .onChange(of: minuteValue) { newValue in
+                minutes = (hourValue * 60) + newValue
+            }
         }
     }
 }

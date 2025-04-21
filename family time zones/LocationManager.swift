@@ -1,11 +1,46 @@
 import Foundation
 import CoreLocation
-import FindMy
+// Remove FindMy import as it's not available or causing issues
+// import FindMy
 import Contacts
 import ContactsUI
 
+// Create a mock protocol that was previously defined in FindMyMock.swift
+protocol FMNetworkDelegate: AnyObject {
+    func network(_ network: FMNetwork, didUpdateItems items: [FMItem])
+    func network(_ network: FMNetwork, didFailWithError error: Error)
+}
+
+// Create a mock FMNetwork class
+class FMNetwork {
+    weak var delegate: FMNetworkDelegate?
+    
+    func startUpdatingItems() {
+        print("Mock: Started updating FindMy items")
+    }
+    
+    func stopUpdatingItems() {
+        print("Mock: Stopped updating FindMy items")
+    }
+}
+
+// Create a mock FMItem class
+class FMItem {
+    let id: String
+    let name: String
+    let ownerEmail: String
+    let location: CLLocation?
+    
+    init(id: String, name: String, ownerEmail: String, location: CLLocation?) {
+        self.id = id
+        self.name = name
+        self.ownerEmail = ownerEmail
+        self.location = location
+    }
+}
+
 // LocationManager handles FindMy integration and time zone lookup
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FMNetworkDelegate {
     @Published var currentLocation: CLLocation?
     @Published var errorMessage: String?
     @Published var permissionStatus: CLAuthorizationStatus = .notDetermined
@@ -30,7 +65,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             
             // Try to determine time zone from location
             if let location = lastLocation {
-                self.timeZone = lookupTimeZone(for: location)
+                self.timeZone = LocationManager.lookupTimeZone(for: location)
             }
         }
     }
@@ -140,7 +175,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         // Find the matching FindMy contact
         if let findMyContact = findMyContacts.first(where: { $0.email.lowercased() == email.lowercased() }),
            let location = findMyContact.lastLocation,
-           let timeZone = lookupTimeZone(for: location) {
+           let timeZone = LocationManager.lookupTimeZone(for: location) {
             
             // Update the contact with the new time zone
             var updatedContact = contact
@@ -180,5 +215,36 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         
         return TimeZone.current // Fallback
+    }
+    
+    // MARK: - FMNetworkDelegate Methods
+    
+    func network(_ network: FMNetwork, didUpdateItems items: [FMItem]) {
+        // In a real implementation, this would handle updated FindMy items
+        print("Mock: Received \(items.count) updated FindMy items")
+        
+        // Convert FindMy items to our contact model
+        let updatedContacts = items.map { item in
+            return FindMyContact(
+                id: item.id,
+                name: item.name,
+                email: item.ownerEmail,
+                lastLocation: item.location
+            )
+        }
+        
+        // Update our contacts list
+        DispatchQueue.main.async {
+            self.findMyContacts = updatedContacts
+        }
+    }
+    
+    func network(_ network: FMNetwork, didFailWithError error: Error) {
+        // In a real implementation, this would handle FindMy errors
+        print("Mock: FindMy network error: \(error.localizedDescription)")
+        
+        DispatchQueue.main.async {
+            self.errorMessage = "FindMy error: \(error.localizedDescription)"
+        }
     }
 } 
