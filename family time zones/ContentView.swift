@@ -12,7 +12,7 @@ import ContactsUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
-    @State private var showingAddContact = false
+    @State private var activeSheet: ActiveSheet?
     @State private var isEditingContact = false
     @State private var editingContactIndex: Int?
     @State private var newContactName = ""
@@ -25,10 +25,22 @@ struct ContentView: View {
     @State private var availableStartTime = 0
     @State private var availableEndTime = 24
     @State private var myTimeZone = TimeZone.current.identifier
-    @State private var showLocationSharingSheet = false
-    @State private var showEditSheet = false
     @State private var messageConfirmationText = ""
     @State private var showingMessageConfirmation = false
+    
+    enum ActiveSheet: Identifiable {
+        case addContact
+        case editContact
+        case locationSharing
+        
+        var id: Int {
+            switch self {
+            case .addContact: return 0
+            case .editContact: return 1
+            case .locationSharing: return 2
+            }
+        }
+    }
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
@@ -175,7 +187,7 @@ struct ContentView: View {
                 // Location Sharing Section
                 Section(header: Text("Location Sharing")) {
                     Button(action: {
-                        showLocationSharingSheet = true
+                        showLocationSharingInvitationView()
                     }) {
                         Label("Manage Location Sharing", systemImage: "location.fill")
                     }
@@ -206,6 +218,7 @@ struct ContentView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         prepareForAdding()
+                        activeSheet = .addContact
                     } label: {
                         Label("Add Contact", systemImage: "plus")
                     }
@@ -214,31 +227,35 @@ struct ContentView: View {
                     EditButton()
                 }
             }
-            .sheet(isPresented: $showingAddContact) {
-                contactFormView
-            }
-            .sheet(isPresented: $showEditSheet) {
-                ContactEditView(
-                    viewModel: viewModel,
-                    isShowing: $showEditSheet,
-                    isEditing: $isEditingContact,
-                    editingIndex: $editingContactIndex,
-                    name: $newContactName,
-                    timeZoneIdentifier: $newContactTimeZone,
-                    color: $newContactColor,
-                    useLocationTracking: $useLocationTracking,
-                    selectedAppleIdEmail: $selectedAppleIdEmail,
-                    hasAvailabilityWindow: $hasAvailabilityWindow,
-                    availableStartTime: $availableStartTime,
-                    availableEndTime: $availableEndTime,
-                    searchText: $searchText
-                )
-            }
-            .sheet(isPresented: $showLocationSharingSheet) {
-                LocationSharingInvitationView(
-                    viewModel: viewModel,
-                    confirmationMessage: $messageConfirmationText
-                )
+            .sheet(item: $activeSheet) { item in
+                switch item {
+                case .addContact:
+                    contactFormView
+                case .editContact:
+                    ContactEditView(
+                        viewModel: viewModel,
+                        isShowing: Binding(
+                            get: { activeSheet == .editContact },
+                            set: { if !$0 { activeSheet = nil } }
+                        ),
+                        isEditing: $isEditingContact,
+                        editingIndex: $editingContactIndex,
+                        name: $newContactName,
+                        timeZoneIdentifier: $newContactTimeZone,
+                        color: $newContactColor,
+                        useLocationTracking: $useLocationTracking,
+                        selectedAppleIdEmail: $selectedAppleIdEmail,
+                        hasAvailabilityWindow: $hasAvailabilityWindow,
+                        availableStartTime: $availableStartTime,
+                        availableEndTime: $availableEndTime,
+                        searchText: $searchText
+                    )
+                case .locationSharing:
+                    LocationSharingInvitationView(
+                        viewModel: viewModel,
+                        confirmationMessage: $messageConfirmationText
+                    )
+                }
             }
             .alert(isPresented: $showingMessageConfirmation) {
                 Alert(
@@ -264,7 +281,7 @@ struct ContentView: View {
                         Button(action: {
                             if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
                                 prepareForEditing(contactIndex: index)
-                                showEditSheet = true
+                                activeSheet = .editContact
                             }
                         }) {
                             Label("Edit", systemImage: "pencil")
@@ -282,7 +299,7 @@ struct ContentView: View {
                     .onTapGesture {
                         if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
                             prepareForEditing(contactIndex: index)
-                            showEditSheet = true
+                            activeSheet = .editContact
                         }
                     }
             }
@@ -290,7 +307,7 @@ struct ContentView: View {
             
             Button(action: {
                 prepareForAdding()
-                showEditSheet = true
+                activeSheet = .addContact
             }) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
@@ -387,7 +404,7 @@ struct ContentView: View {
             
             Section {
                 Button("Cancel") {
-                    showingAddContact = false
+                    activeSheet = nil
                     resetForm()
                 }
                 .foregroundColor(.red)
@@ -523,7 +540,7 @@ struct ContentView: View {
         WidgetCenter.shared.reloadAllTimelines()
         print("App: Manually refreshed widget timelines after saving contact")
         
-        showingAddContact = false
+        activeSheet = nil
         resetForm()
     }
     
@@ -553,14 +570,12 @@ struct ContentView: View {
         availableEndTime = contact.availableEndTime
         editingContactIndex = contactIndex
         isEditingContact = true
-        showingAddContact = true
     }
     
     private func prepareForAdding() {
         isEditingContact = false
         editingContactIndex = nil
         resetForm()
-        showingAddContact = true
     }
     
     private func resetForm() {
@@ -623,7 +638,6 @@ struct ContentView: View {
     func editingContact(_ contact: Contact) {
         if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
             prepareForEditing(contactIndex: index)
-            showEditSheet = true
         }
     }
     
@@ -640,7 +654,7 @@ struct ContentView: View {
     
     // Method to handle location sharing for a contact
     func showLocationSharingInvitationView() {
-        showLocationSharingSheet = true
+        activeSheet = .locationSharing
     }
 }
 
@@ -1089,6 +1103,7 @@ struct ContactEditView: View {
         // Force widget refresh
         WidgetCenter.shared.reloadAllTimelines()
         
+        // Dismiss this view
         isShowing = false
     }
     
@@ -1234,8 +1249,13 @@ struct LocationSharingInvitationView: View {
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
             })
-            .sheet(isPresented: $showingContactPicker) {
+            .fullScreenCover(isPresented: $showingContactPicker) {
+                // Use fullScreenCover instead of sheet to avoid nesting issues
                 ContactPickerWrapper(viewModel: viewModel, showingMessageConfirmation: $showingMessageConfirmation, confirmationMessage: $confirmationMessage)
+                    .onDisappear {
+                        // Ensure the contact picker is fully dismissed
+                        showingContactPicker = false
+                    }
             }
             .alert(isPresented: $showingMessageConfirmation) {
                 Alert(

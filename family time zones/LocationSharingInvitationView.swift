@@ -96,8 +96,17 @@ struct LocationSharingInvitationView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingContactPicker) {
-                DirectContactPickerView(selectedContact: $selectedContact, locationManager: locationManager)
+            .fullScreenCover(isPresented: $showingContactPicker) {
+                // Use a direct system contact picker without nesting sheets
+                SystemContactPicker(selectedContact: $selectedContact)
+                    .ignoresSafeArea()
+                    .onDisappear {
+                        if let contact = selectedContact {
+                            locationManager.sendLocationSharingInvitation(contact: contact)
+                        }
+                        // Ensure the picker is fully dismissed
+                        showingContactPicker = false
+                    }
             }
         }
     }
@@ -120,24 +129,6 @@ struct LocationSharingInvitationView: View {
         contact.emailAddresses = [emailAddress]
         
         return contact
-    }
-}
-
-// Direct contact picker view that immediately shows the system contact picker
-struct DirectContactPickerView: View {
-    @Binding var selectedContact: CNContact?
-    var locationManager: LocationManager
-    @Environment(\.presentationMode) var presentationMode
-    
-    var body: some View {
-        SystemContactPicker(selectedContact: $selectedContact)
-            .ignoresSafeArea()
-            .onDisappear {
-                if let contact = selectedContact {
-                    locationManager.sendLocationSharingInvitation(contact: contact)
-                }
-                presentationMode.wrappedValue.dismiss()
-            }
     }
 }
 
