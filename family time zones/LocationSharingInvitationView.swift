@@ -3,132 +3,90 @@ import Contacts
 import ContactsUI
 
 struct LocationSharingInvitationView: View {
-    @ObservedObject var locationManager: LocationManager
-    @Environment(\.presentationMode) var presentationMode
+    var viewModel: ContactViewModel
     @State private var showingContactPicker = false
-    @State private var selectedContact: CNContact?
+    @State private var showingMessageConfirmation = false
+    @Binding var confirmationMessage: String
+    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         NavigationView {
-            List {
-                Section(header: Text("Send New Invitation")) {
-                    Button(action: {
-                        showingContactPicker = true
-                    }) {
-                        Label("Select Contact", systemImage: "person.crop.circle.badge.plus")
-                    }
-                }
+            VStack(spacing: 20) {
+                Text("Invite someone to share their location with you")
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .padding()
                 
-                if !locationManager.getPendingInvitations().isEmpty {
-                    Section(header: Text("Pending Invitations")) {
-                        ForEach(locationManager.getPendingInvitations()) { invitation in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(invitation.contactName)
-                                        .font(.headline)
-                                    Text(invitation.contactEmail)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Text("Pending")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                                    .padding(4)
-                                    .background(Color.orange.opacity(0.2))
-                                    .cornerRadius(4)
-                            }
-                            .contextMenu {
-                                Button(action: {
-                                    // Resend invitation
-                                    if let contact = createContact(from: invitation) {
-                                        locationManager.sendLocationSharingInvitation(contact: contact)
-                                    }
-                                }) {
-                                    Label("Resend Invitation", systemImage: "arrow.clockwise")
-                                }
-                                
-                                Button(role: .destructive, action: {
-                                    locationManager.updateInvitationStatus(id: invitation.id, status: .declined)
-                                }) {
-                                    Label("Cancel Invitation", systemImage: "trash")
-                                }
-                            }
-                        }
-                    }
-                }
+                Text("When someone shares their location with you, their time zone will automatically update based on where they are.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
                 
-                if !locationManager.getAcceptedInvitations().isEmpty {
-                    Section(header: Text("Active Sharing")) {
-                        ForEach(locationManager.getAcceptedInvitations()) { invitation in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(invitation.contactName)
-                                        .font(.headline)
-                                    
-                                    if let lastUpdate = invitation.lastLocationUpdate {
-                                        Text("Last update: \(formatDate(lastUpdate))")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Text("Active")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                                    .padding(4)
-                                    .background(Color.green.opacity(0.2))
-                                    .cornerRadius(4)
-                            }
-                        }
+                Button(action: {
+                    showingContactPicker = true
+                }) {
+                    HStack {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.title2)
+                        Text("Select Contact")
+                            .fontWeight(.semibold)
                     }
+                    .frame(minWidth: 200)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
                 }
+                .padding()
+                
+                Text("Location information is only used to determine the contact's time zone and is never stored or shared with third parties.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Spacer()
             }
-            .navigationTitle("Location Sharing")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-            }
+            .padding()
+            .navigationBarTitle("Location Sharing", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Done") {
+                presentationMode.wrappedValue.dismiss()
+            })
             .fullScreenCover(isPresented: $showingContactPicker) {
-                // Use a direct system contact picker without nesting sheets
-                SystemContactPicker(selectedContact: $selectedContact)
-                    .ignoresSafeArea()
-                    .onDisappear {
-                        if let contact = selectedContact {
-                            locationManager.sendLocationSharingInvitation(contact: contact)
+                // Use fullScreenCover instead of sheet to avoid nesting issues
+                NavigationView {
+                    RealContactPickerViewController(selectedContact: Binding<CNContact?>(
+                        get: { nil },
+                        set: { contact in
+                            if let contact = contact {
+                                // Process the selected contact for location sharing
+                                viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
+                                
+                                // Show confirmation message
+                                let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+                                let displayName = fullName.isEmpty ? contact.organizationName : fullName
+                                confirmationMessage = "Location sharing invitation sent to \(displayName)."
+                                showingMessageConfirmation = true
+                            }
+                            
+                            // Dismiss the picker
+                            showingContactPicker = false
                         }
-                        // Ensure the picker is fully dismissed
+                    ))
+                    .ignoresSafeArea()
+                    .navigationBarItems(leading: Button("Cancel") {
                         showingContactPicker = false
-                    }
+                    })
+                }
+            }
+            .alert(isPresented: $showingMessageConfirmation) {
+                Alert(
+                    title: Text("Invitation Sent"),
+                    message: Text(confirmationMessage),
+                    dismissButton: .default(Text("OK"))
+                )
             }
         }
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-    
-    private func createContact(from invitation: LocationSharingInvitation) -> CNContact? {
-        let contact = CNMutableContact()
-        contact.givenName = invitation.contactName.components(separatedBy: " ").first ?? ""
-        contact.familyName = invitation.contactName.components(separatedBy: " ").dropFirst().joined(separator: " ")
-        
-        let emailAddress = CNLabeledValue(
-            label: CNLabelHome,
-            value: invitation.contactEmail as NSString
-        )
-        contact.emailAddresses = [emailAddress]
-        
-        return contact
     }
 }
 

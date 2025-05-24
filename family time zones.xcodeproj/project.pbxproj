@@ -104,6 +104,7 @@
 		FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsWidgetProvider.swift; sourceTree = "<group>"; };
 		FD9E7F422DB6F2E000C6892D /* LocationManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FindMyContactPicker.swift; sourceTree = "<group>"; };
+		FDC800922DE27104001A6B87 /* family-time-zones-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "family-time-zones-Info.plist"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +168,7 @@
 		FD9E7EE42DAA5B5900C6892D /* family time zones */ = {
 			isa = PBXGroup;
 			children = (
+				FDC800922DE27104001A6B87 /* family-time-zones-Info.plist */,
 				FD9E7F382DAAAD9800C6892D /* family time zones.entitlements */,
 				FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */,
 				FD9E7F422DB6F2E000C6892D /* LocationManager.swift */,
@@ -591,6 +593,7 @@
 				DEVELOPMENT_TEAM = B79XZQVVUW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "family-time-zones-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Family Time";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -626,6 +629,7 @@
 				DEVELOPMENT_TEAM = B79XZQVVUW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "family-time-zones-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Family Time";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -133,6 +133,13 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyReduced // To save battery
         
+        // Enable background updates
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.pausesLocationUpdatesAutomatically = false
+        
+        // Set location activity type for better location services
+        locationManager.activityType = .other
+        
         // Check the current authorization status
         checkLocationServicesStatus()
         
@@ -174,8 +181,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     
     // Request location permissions
     func requestLocationPermission() {
-        // Request "when in use" authorization first
-        locationManager.requestWhenInUseAuthorization()
+        // Always request the highest level of permissions first
+        locationManager.requestAlwaysAuthorization()
     }
     
     // Request "always" permission after "when in use" is granted
@@ -186,11 +193,21 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     // Start monitoring user's location
     func startLocationUpdates() {
         locationManager.startUpdatingLocation()
+        
+        // Also start significant location change monitoring for background updates
+        if CLLocationManager.significantLocationChangeMonitoringAvailable() {
+            locationManager.startMonitoringSignificantLocationChanges()
+        }
     }
     
     // Stop monitoring user's location
     func stopLocationUpdates() {
         locationManager.stopUpdatingLocation()
+        
+        // Also stop significant location monitoring
+        if CLLocationManager.significantLocationChangeMonitoringAvailable() {
+            locationManager.stopMonitoringSignificantLocationChanges()
+        }
     }
     
     // MARK: - CLLocationManagerDelegate methods

@@ -9,6 +9,7 @@ import SwiftUI
 import WidgetKit
 import Contacts
 import ContactsUI
+import UIKit
 
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
@@ -247,16 +248,38 @@ struct ContentView: View {
                         confirmationMessage: $messageConfirmationText
                     )
                 case .contactPicker:
-                    EmptyView() // Handle in fullScreenCover instead
+                    NavigationView {
+                        RealContactPickerViewController(selectedContact: Binding<CNContact?>(
+                            get: { nil },
+                            set: { contact in
+                                if let contact = contact {
+                                    // Populate the form with contact info
+                                    let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+                                    state.newContactName = fullName.isEmpty ? contact.organizationName : fullName
+                                    
+                                    // Find Apple ID email if available (typically ends with @icloud.com)
+                                    if !contact.emailAddresses.isEmpty {
+                                        let appleEmail = contact.emailAddresses.first { 
+                                            ($0.value as String).lowercased().contains("@icloud.com") 
+                                        }
+                                        state.selectedAppleIdEmail = (appleEmail?.value as String?) ?? 
+                                                                   (contact.emailAddresses.first?.value as String?) ?? ""
+                                    }
+                                    
+                                    // Mark that we've got contact data and are ready to show the form
+                                    state.readyToShowForm = true
+                                    
+                                    // First dismiss this picker
+                                    state.activeSheet = nil
+                                }
+                            }
+                        ))
+                        .ignoresSafeArea()
+                        .navigationBarItems(leading: Button("Cancel") {
+                            state.activeSheet = nil
+                        })
+                    }
                 }
-            }
-            .fullScreenCover(isPresented: Binding<Bool>(
-                get: { state.activeSheet == .contactPicker },
-                set: { if !$0 { state.activeSheet = nil } }
-            )) {
-                ContactPickerWrapper(viewModel: viewModel, 
-                                    showingMessageConfirmation: $showingMessageConfirmation, 
-                                    confirmationMessage: $messageConfirmationText)
             }
             .alert(isPresented: $showingMessageConfirmation) {
                 Alert(
@@ -1308,11 +1331,30 @@ struct LocationSharingInvitationView: View {
             })
             .fullScreenCover(isPresented: $showingContactPicker) {
                 // Use fullScreenCover instead of sheet to avoid nesting issues
-                ContactPickerWrapper(viewModel: viewModel, showingMessageConfirmation: $showingMessageConfirmation, confirmationMessage: $confirmationMessage)
-                    .onDisappear {
-                        // Ensure the contact picker is fully dismissed
+                NavigationView {
+                    RealContactPickerViewController(selectedContact: Binding<CNContact?>(
+                        get: { nil },
+                        set: { contact in
+                            if let contact = contact {
+                                // Process the selected contact for location sharing
+                                viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
+                                
+                                // Show confirmation message
+                                let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+                                let displayName = fullName.isEmpty ? contact.organizationName : fullName
+                                confirmationMessage = "Location sharing invitation sent to \(displayName)."
+                                showingMessageConfirmation = true
+                            }
+                            
+                            // Dismiss the picker
+                            showingContactPicker = false
+                        }
+                    ))
+                    .ignoresSafeArea()
+                    .navigationBarItems(leading: Button("Cancel") {
                         showingContactPicker = false
-                    }
+                    })
+                }
             }
             .alert(isPresented: $showingMessageConfirmation) {
                 Alert(
@@ -1325,68 +1367,7 @@ struct LocationSharingInvitationView: View {
     }
 }
 
-// ContactPickerWrapper for adding new contacts
-struct ContactPickerWrapper: View {
-    var viewModel: ContactViewModel
-    @Binding var showingMessageConfirmation: Bool
-    @Binding var confirmationMessage: String
-    @Environment(\.presentationMode) var presentationMode
-    @EnvironmentObject var contentView: ContentViewState
-    
-    var body: some View {
-        RealContactPickerViewController(selectedContact: Binding<CNContact?>(
-            get: { nil },
-            set: { contact in
-                if let contact = contact {
-                    // For adding new contacts
-                    if contentView.activeSheet == .contactPicker {
-                        // Populate the form with contact info
-                        let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
-                        contentView.newContactName = fullName.isEmpty ? contact.organizationName : fullName
-                        
-                        // Find Apple ID email if available (typically ends with @icloud.com)
-                        if !contact.emailAddresses.isEmpty {
-                            let appleEmail = contact.emailAddresses.first { 
-                                ($0.value as String).lowercased().contains("@icloud.com") 
-                            }
-                            contentView.selectedAppleIdEmail = (appleEmail?.value as String?) ?? 
-                                                               (contact.emailAddresses.first?.value as String?) ?? ""
-                        }
-                        
-                        // Mark that we've got contact data and are ready to show the form
-                        contentView.readyToShowForm = true
-                        
-                        // First dismiss this picker
-                        contentView.activeSheet = nil
-                        presentationMode.wrappedValue.dismiss()
-                    } 
-                    // For location sharing invitations
-                    else {
-                        // Process the selected contact for location sharing
-                        viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
-                        
-                        // Show confirmation message
-                        let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
-                        let displayName = fullName.isEmpty ? contact.organizationName : fullName
-                        confirmationMessage = "Location sharing invitation sent to \(displayName)."
-                        showingMessageConfirmation = true
-                        
-                        // Dismiss this picker
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                } else {
-                    // Handle case when user cancels the picker without selecting a contact
-                    contentView.activeSheet = nil
-                    presentationMode.wrappedValue.dismiss()
-                }
-            }
-        ))
-        .ignoresSafeArea()
-        .environmentObject(contentView)
-    }
-}
-
-// Bridge to UIKit's Contact Picker
+// Add RealContactPickerViewController after LocationSharingInvitationView
 struct RealContactPickerViewController: UIViewControllerRepresentable {
     @Binding var selectedContact: CNContact?
     
@@ -1421,7 +1402,7 @@ struct RealContactPickerViewController: UIViewControllerRepresentable {
     }
 }
 
-// ContentViewState to share data between ContentView and ContactPickerWrapper
+// ContentViewState to share data between different views in ContentView
 class ContentViewState: ObservableObject {
     @Published var activeSheet: ContentView.ActiveSheet?
     @Published var newContactName = ""

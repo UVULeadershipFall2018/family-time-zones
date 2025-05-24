@@ -1,5 +1,6 @@
 import UIKit
 import SwiftUI
+import CoreLocation
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -20,6 +21,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Handle any URL contexts that were provided at launch
         if let urlContext = connectionOptions.urlContexts.first {
             handleIncomingURL(url: urlContext.url)
+        }
+    }
+    
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        // Resume location updates when the app becomes active
+        LocationManager.shared.startLocationUpdates()
+    }
+    
+    func sceneWillResignActive(_ scene: UIScene) {
+        // We'll keep location updates running in the background
+        // But we could adjust precision or frequency here
+    }
+    
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        // App entered background - ensure location updates can continue
+        let locationManager = LocationManager.shared
+        
+        // Ensure background location updates are properly configured
+        if locationManager.permissionStatus == .authorizedAlways {
+            // Continue background updates with significant change monitoring
+            if CLLocationManager.significantLocationChangeMonitoringAvailable() {
+                print("App entered background - continuing significant location monitoring")
+            }
         }
     }
     

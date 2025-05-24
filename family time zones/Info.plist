@@ -26,6 +26,8 @@
     <array>
         <string>location</string>
         <string>fetch</string>
+        <string>processing</string>
+        <string>remote-notification</string>
     </array>
     
     <key>UIApplicationSceneManifest</key>
@@ -74,6 +76,15 @@
     
     <key>NSLocationAlwaysUsageDescription</key>
     <string>Family Time Zones needs your location to automatically determine your time zone and update it when you travel.</string>
+    
+    <key>NSLocationUsageDescription</key>
+    <string>Family Time Zones needs your location to automatically determine your time zone and update it when you travel.</string>
+    
+    <key>NSLocationTemporaryUsageDescriptionDictionary</key>
+    <dict>
+        <key>TimeZoneUpdate</key>
+        <string>Your precise location is needed temporarily to accurately determine your time zone.</string>
+    </dict>
     
     <!-- App Group for Widget Sharing -->
     <key>com.apple.security.application-groups</key>

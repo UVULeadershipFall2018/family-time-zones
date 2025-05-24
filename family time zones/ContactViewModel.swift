@@ -11,6 +11,16 @@ class ContactViewModel: ObservableObject {
     @Published var locationManager = LocationManager()
     @Published var useMyLocationForTimeZone: Bool = false
     @Published var myTimeZone: String = TimeZone.current.identifier
+    @Published var searchText = ""
+    
+    // Constants for use in views
+    let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
+    
+    var filteredTimeZones: [String] {
+        return TimeZone.knownTimeZoneIdentifiers.filter { identifier in
+            searchText.isEmpty || identifier.localizedCaseInsensitiveContains(searchText)
+        }.sorted()
+    }
     
     private var locationUpdateTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
@@ -32,6 +42,9 @@ class ContactViewModel: ObservableObject {
         
         // Set up FindMy contact listener
         setupFindMyListener()
+        
+        // Set up location tracking
+        setupLocationTracking()
     }
     
     deinit {
@@ -288,6 +301,28 @@ class ContactViewModel: ObservableObject {
     // Get available contacts for location sharing
     func availableSharedLocationContacts() -> [LocationManager.SharedLocationContact] {
         return locationManager.locationSharedContacts
+    }
+    
+    private func setupLocationTracking() {
+        if let findMyManager = locationManager.findMyManager {
+            findMyManager.delegate = locationManager
+        }
+    }
+    
+    func formatTimeZoneForDisplay(_ identifier: String) -> String {
+        guard let timeZone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "z"
+        let abbreviation = formatter.string(from: Date())
+        
+        let offset = timeZone.secondsFromGMT() / 3600
+        let offsetString = offset >= 0 ? "GMT+\(offset)" : "GMT\(offset)"
+        
+        return "\(identifier.replacingOccurrences(of: "_", with: " ")) (\(offsetString), \(abbreviation))"
     }
 }
 
