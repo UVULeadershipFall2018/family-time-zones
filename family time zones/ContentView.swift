@@ -533,8 +533,8 @@ struct ContentView: View {
             timeZoneIdentifier: newContactTimeZone,
             color: newContactColor,
             useLocationTracking: false,
-            appleIdEmail: nil,
-            lastLocationUpdate: nil,
+            appleIdEmail: nil as String?,
+            lastLocationUpdate: nil as Date?,
             hasAvailabilityWindow: hasAvailabilityWindow,
             availableStartTime: availableStartTime,
             availableEndTime: availableEndTime
