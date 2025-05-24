@@ -22,28 +22,214 @@ struct ContentView: View {
     @State private var hasAvailabilityWindow = false
     @State private var availableStartTime = 0
     @State private var availableEndTime = 24
+    @State private var myTimeZone = TimeZone.current.identifier
+    @State private var showLocationSharingSheet = false
+    @State private var showEditSheet = false
+    @State private var messageConfirmationText = ""
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
+    var filteredTimeZones: [String] {
+        return TimeZone.knownTimeZoneIdentifiers.filter { identifier in
+            searchText.isEmpty || identifier.localizedCaseInsensitiveContains(searchText)
+        }.sorted()
+    }
+    
+    func formatTimeZoneForDisplay(_ identifier: String) -> String {
+        guard let timeZone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "z"
+        let abbreviation = formatter.string(from: Date())
+        
+        let offset = timeZone.secondsFromGMT() / 3600
+        let offsetString = offset >= 0 ? "GMT+\(offset)" : "GMT\(offset)"
+        
+        return "\(identifier.replacingOccurrences(of: "_", with: " ")) (\(offsetString), \(abbreviation))"
+    }
+    
     var body: some View {
         NavigationView {
-            contactListView
-                .navigationTitle("Family Time Zones")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            prepareForAdding()
-                        } label: {
-                            Label("Add Contact", systemImage: "plus")
+            List {
+                // Location Permission Section
+                Section(header: Text("Location Services")) {
+                    if !viewModel.locationManager.isLocationServicesEnabled {
+                        HStack {
+                            Image(systemName: "location.slash.fill")
+                                .foregroundColor(.red)
+                            Text("Location Services Disabled")
+                                .foregroundColor(.red)
+                        }
+                        
+                        Button(action: {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            Text("Open Settings")
+                        }
+                    } else {
+                        switch viewModel.locationManager.permissionStatus {
+                        case .notDetermined:
+                            HStack {
+                                Image(systemName: "location.circle")
+                                    .foregroundColor(.orange)
+                                Text("Location permission not determined")
+                            }
+                            
+                            Button(action: {
+                                viewModel.locationManager.requestLocationPermission()
+                            }) {
+                                Text("Allow Location Access")
+                            }
+                            
+                        case .restricted, .denied:
+                            HStack {
+                                Image(systemName: "location.slash.fill")
+                                    .foregroundColor(.red)
+                                Text("Location access denied")
+                                    .foregroundColor(.red)
+                            }
+                            
+                            Button(action: {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                Text("Open Settings to Enable Location")
+                            }
+                            
+                        case .authorizedWhenInUse:
+                            HStack {
+                                Image(systemName: "location.fill")
+                                    .foregroundColor(.green)
+                                Text("Location access granted when app is in use")
+                                    .foregroundColor(.green)
+                            }
+                            
+                            Button(action: {
+                                viewModel.locationManager.requestAlwaysPermission()
+                            }) {
+                                Text("Request Background Location Access")
+                            }
+                            
+                        case .authorizedAlways:
+                            HStack {
+                                Image(systemName: "location.fill")
+                                    .foregroundColor(.green)
+                                Text("Full location access granted")
+                                    .foregroundColor(.green)
+                            }
+                            
+                        @unknown default:
+                            Text("Unknown location permission status")
                         }
                     }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        EditButton()
+                }
+                
+                // My Location Section
+                Section(header: Text("My Location")) {
+                    Toggle("Use My Location for Time Zone", isOn: Binding(
+                        get: { viewModel.useMyLocationForTimeZone },
+                        set: { viewModel.setUseMyLocationForTimeZone($0) }
+                    ))
+                    
+                    if viewModel.useMyLocationForTimeZone {
+                        HStack {
+                            Text("Current Time Zone:")
+                            Spacer()
+                            Text(formatTimeZoneForDisplay(viewModel.myTimeZone))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        // Only show this if location permission is granted
+                        if viewModel.locationManager.permissionStatus == .authorizedWhenInUse || 
+                           viewModel.locationManager.permissionStatus == .authorizedAlways {
+                            Button(action: {
+                                viewModel.updateUserTimeZone()
+                            }) {
+                                Text("Update My Time Zone")
+                            }
+                        }
+                    } else {
+                        Picker("My Time Zone", selection: Binding(
+                            get: { myTimeZone },
+                            set: { 
+                                myTimeZone = $0
+                                viewModel.setManualTimeZone($0)
+                            }
+                        )) {
+                            ForEach(filteredTimeZones, id: \.self) { timeZone in
+                                Text(formatTimeZoneForDisplay(timeZone)).tag(timeZone)
+                            }
+                        }
                     }
                 }
-                .sheet(isPresented: $showingAddContact) {
-                    contactFormView
+                
+                // Location Sharing Section
+                Section(header: Text("Location Sharing")) {
+                    Button(action: {
+                        showLocationSharingSheet = true
+                    }) {
+                        Label("Manage Location Sharing", systemImage: "location.fill")
+                    }
+                    
+                    if !viewModel.getLocationSharingContacts().isEmpty {
+                        ForEach(viewModel.getLocationSharingContacts()) { contact in
+                            HStack {
+                                Text(contact.name)
+                                Spacer()
+                                if let lastUpdate = contact.lastLocationUpdate {
+                                    Text("Updated \(formatRelativeTime(lastUpdate))")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("Pending")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                            }
+                        }
+                    }
                 }
+                
+                contactListView
+                    .navigationTitle("Family Time Zones")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button {
+                                prepareForAdding()
+                            } label: {
+                                Label("Add Contact", systemImage: "plus")
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            EditButton()
+                        }
+                    }
+                    .sheet(isPresented: $showingAddContact) {
+                        contactFormView
+                    }
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            ContactEditView(contact: $editingContact, isNewContact: editingContact.id.isEmpty, viewModel: viewModel, onSave: saveContact, onDelete: deleteContact)
+        }
+        .sheet(isPresented: $showLocationSharingSheet) {
+            LocationSharingInvitationView(locationManager: viewModel.locationManager)
+        }
+        .alert(isPresented: $showingMessageConfirmation) {
+            Alert(
+                title: Text("Send Message"),
+                message: Text(messageConfirmationText),
+                primaryButton: .default(Text("Send")) {
+                    sendMessageToContact()
+                },
+                secondaryButton: .cancel()
+            )
         }
     }
     
@@ -288,102 +474,6 @@ struct ContentView: View {
         resetForm()
     }
     
-    private var filteredTimeZones: [String] {
-        // Add common US time zones first
-        let allTimeZones = viewModel.availableTimeZones()
-        
-        if searchText.isEmpty {
-            // Add US time zones at the top when no search term is entered
-            return commonUsTimeZones() + allTimeZones.filter { !isCommonUsTimeZone($0) }
-        } else {
-            let searchLower = searchText.lowercased()
-            
-            // Search by display name and common aliases
-            return allTimeZones.filter { timeZone in
-                let displayName = formatTimeZoneForDisplay(timeZone).lowercased()
-                if displayName.contains(searchLower) {
-                    return true
-                }
-                
-                // Check for common aliases
-                return timeZoneAliasMatches(timeZone: timeZone, searchText: searchLower)
-            }
-        }
-    }
-    
-    private func isCommonUsTimeZone(_ identifier: String) -> Bool {
-        let commonZones = ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Phoenix", "America/Anchorage", "Pacific/Honolulu"]
-        return commonZones.contains(identifier)
-    }
-    
-    private func commonUsTimeZones() -> [String] {
-        // Most common US time zones for quick access
-        return [
-            "America/New_York",     // Eastern
-            "America/Chicago",      // Central
-            "America/Denver",       // Mountain (includes Salt Lake City, Utah)
-            "America/Phoenix",      // Arizona (Mountain without DST)
-            "America/Los_Angeles",  // Pacific (includes Portland)
-            "America/Anchorage",    // Alaska
-            "Pacific/Honolulu"      // Hawaii
-        ]
-    }
-    
-    private func timeZoneAliasMatches(timeZone: String, searchText: String) -> Bool {
-        // Map common location names to time zone identifiers
-        let aliases: [String: [String]] = [
-            "america/new_york": ["eastern", "est", "edt", "east coast"],
-            "america/chicago": ["central", "cst", "cdt"],
-            "america/denver": ["mountain", "mst", "mdt", "utah", "salt lake", "salt lake city", "colorado"],
-            "america/phoenix": ["arizona", "mst"],
-            "america/los_angeles": ["pacific", "pst", "pdt", "west coast", "portland", "oregon", "california"],
-            "america/anchorage": ["alaska", "akst", "akdt"],
-            "pacific/honolulu": ["hawaii", "hst", "hdt"]
-        ]
-        
-        let timeZoneLower = timeZone.lowercased()
-        if let aliasesForZone = aliases[timeZoneLower] {
-            return aliasesForZone.contains { alias in
-                alias.contains(searchText)
-            }
-        }
-        
-        // Also check if search term matches a known alias
-        for (identifier, aliasesArray) in aliases {
-            if aliasesArray.contains(where: { $0.contains(searchText) }) {
-                return timeZoneLower == identifier
-            }
-        }
-        
-        return false
-    }
-    
-    private func formatTimeZoneForDisplay(_ identifier: String) -> String {
-        // Special handling for US time zones to show common names
-        let usTimeZoneNames: [String: String] = [
-            "America/New_York": "Eastern Time (New York)",
-            "America/Chicago": "Central Time (Chicago)",
-            "America/Denver": "Mountain Time (Denver, Salt Lake City)",
-            "America/Phoenix": "Mountain Time - No DST (Phoenix)",
-            "America/Los_Angeles": "Pacific Time (Los Angeles, Portland)",
-            "America/Anchorage": "Alaska Time (Anchorage)",
-            "Pacific/Honolulu": "Hawaii Time (Honolulu)"
-        ]
-        
-        if let specialName = usTimeZoneNames[identifier] {
-            return specialName
-        }
-        
-        // Fall back to the standard formatting for other time zones
-        let components = identifier.split(separator: "/")
-        if components.count > 1 {
-            let region = components.first?.replacingOccurrences(of: "_", with: " ") ?? ""
-            let city = components.last?.replacingOccurrences(of: "_", with: " ") ?? ""
-            return "\(city), \(region)"
-        }
-        return identifier
-    }
-    
     private func getTimeOffset(for identifier: String) -> String {
         guard let timeZone = TimeZone(identifier: identifier) else { return "" }
         let currentTimeZone = TimeZone.current
@@ -432,6 +522,7 @@ struct ContentView: View {
         hasAvailabilityWindow = false
         availableStartTime = 8 * 60 // 8:00 AM
         availableEndTime = 22 * 60 // 10:00 PM
+        myTimeZone = TimeZone.current.identifier
     }
     
     private func checkAvailability() -> Bool {
@@ -446,6 +537,13 @@ struct ContentView: View {
         )
         
         return tempContact.isAvailable()
+    }
+    
+    // Helper function to format relative times
+    private func formatRelativeTime(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 

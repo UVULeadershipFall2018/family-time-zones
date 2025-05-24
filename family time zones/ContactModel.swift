@@ -1,46 +1,33 @@
 import Foundation
 
-struct Contact: Identifiable, Codable, Hashable {
-    var id = UUID()
+struct Contact: Identifiable, Codable, Equatable {
+    var id = UUID().uuidString
     var name: String
-    var timeZoneIdentifier: String
-    var color: String // Store color as string representation
-    var useLocationTracking: Bool = false // Whether to use Find My location
-    var appleIdEmail: String? // The Apple ID email for Find My
-    var lastLocationUpdate: Date? // When the location was last updated
+    var timeZone: String
+    var color: String
+    var availableStartTime: Int // Minutes from midnight
+    var availableEndTime: Int // Minutes from midnight
+    var email: String
+    var useLocationForTimeZone: Bool = false
+    var lastLocationUpdate: Date?
     
-    // Availability window properties
-    var hasAvailabilityWindow: Bool = false
-    var availableStartTime: Int = 8 * 60 // Default 8:00 AM (stored as minutes from midnight)
-    var availableEndTime: Int = 22 * 60 // Default 10:00 PM (stored as minutes from midnight)
+    static func ==(lhs: Contact, rhs: Contact) -> Bool {
+        return lhs.id == rhs.id
+    }
     
-    // Constructor with availability parameters
-    init(
-        id: UUID = UUID(), 
-        name: String, 
-        timeZoneIdentifier: String, 
-        color: String, 
-        useLocationTracking: Bool = false, 
-        appleIdEmail: String? = nil, 
-        lastLocationUpdate: Date? = nil,
-        hasAvailabilityWindow: Bool = false,
-        availableStartTime: Int = 8 * 60,
-        availableEndTime: Int = 22 * 60
-    ) {
-        self.id = id
-        self.name = name
-        self.timeZoneIdentifier = timeZoneIdentifier
-        self.color = color
-        self.useLocationTracking = useLocationTracking
-        self.appleIdEmail = appleIdEmail
-        self.lastLocationUpdate = lastLocationUpdate
-        self.hasAvailabilityWindow = hasAvailabilityWindow
-        self.availableStartTime = availableStartTime
-        self.availableEndTime = availableEndTime
+    static var example: Contact {
+        return Contact(
+            name: "John Doe",
+            timeZone: "America/New_York",
+            color: "blue",
+            availableStartTime: 8 * 60, // 8 AM
+            availableEndTime: 22 * 60, // 10 PM
+            email: "john@example.com"
+        )
     }
     
     var timeZone: TimeZone {
-        TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        TimeZone(identifier: timeZone) ?? TimeZone.current
     }
     
     func currentTime() -> Date {
@@ -82,22 +69,22 @@ struct Contact: Identifiable, Codable, Hashable {
             "Pacific/Honolulu": "Honolulu (Hawaii)"
         ]
         
-        if let specialName = usTimeZoneNames[timeZoneIdentifier] {
+        if let specialName = usTimeZoneNames[timeZone] {
             return specialName
         }
         
         // Extract a user-friendly location name from the time zone identifier
-        let components = timeZoneIdentifier.split(separator: "/")
+        let components = timeZone.split(separator: "/")
         if components.count > 1 {
             // Replace underscores with spaces and return the city portion
-            return components.last?.replacingOccurrences(of: "_", with: " ") ?? timeZoneIdentifier
+            return components.last?.replacingOccurrences(of: "_", with: " ") ?? timeZone
         }
-        return timeZoneIdentifier
+        return timeZone
     }
     
     // Display string indicating if location tracking is enabled
     var locationTrackingStatus: String {
-        if useLocationTracking {
+        if useLocationForTimeZone {
             if let lastUpdate = lastLocationUpdate {
                 let formatter = RelativeDateTimeFormatter()
                 formatter.unitsStyle = .short
@@ -113,7 +100,7 @@ struct Contact: Identifiable, Codable, Hashable {
     // Check if contact is available at the current time
     func isAvailable(at date: Date = Date()) -> Bool {
         // If no availability window is set, the contact is always available
-        if !hasAvailabilityWindow {
+        if availableStartTime == 0 && availableEndTime == 0 {
             return true
         }
         
@@ -148,7 +135,7 @@ struct Contact: Identifiable, Codable, Hashable {
     
     // Format availability times for display
     func formattedAvailabilityWindow() -> String {
-        if !hasAvailabilityWindow {
+        if availableStartTime == 0 && availableEndTime == 0 {
             return "Always available"
         }
         
