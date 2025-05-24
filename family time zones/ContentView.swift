@@ -1175,7 +1175,6 @@ struct LocationSharingInvitationView: View {
     @ObservedObject var viewModel: ContactViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
-    @State private var needsToShowContactPicker = false
     @Binding var confirmationMessage: String
     @State private var showingMessageConfirmation = false
     
@@ -1214,14 +1213,8 @@ struct LocationSharingInvitationView: View {
                     }
                     
                     Button(action: {
-                        if presentationMode.wrappedValue.isPresented {
-                            // First dismiss this view, then show contact picker
-                            needsToShowContactPicker = true
-                            presentationMode.wrappedValue.dismiss()
-                        } else {
-                            // Show contact picker directly
-                            showingContactPicker = true
-                        }
+                        // Show contact picker directly - no need to dismiss first
+                        showingContactPicker = true
                     }) {
                         Label("Invite a Contact", systemImage: "person.badge.plus")
                     }
@@ -1251,56 +1244,86 @@ struct LocationSharingInvitationView: View {
                     dismissButton: .default(Text("OK"))
                 )
             }
-            .onAppear {
-                // If we need to show the contact picker after a dismissal
-                if needsToShowContactPicker {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showingContactPicker = true
-                        needsToShowContactPicker = false
-                    }
-                }
-            }
         }
     }
 }
 
-// Add ContactPickerWrapper without using CNContactPickerViewController
+// Add ContactPickerWrapper with real contact picker functionality
 struct ContactPickerWrapper: View {
     var viewModel: ContactViewModel
     @Binding var showingMessageConfirmation: Bool
     @Binding var confirmationMessage: String
     @Environment(\.presentationMode) var presentationMode
-    @State private var isShowingContactPicker = false
+    @State private var showingRealContactPicker = false
+    @State private var selectedContact: CNContact?
     
     var body: some View {
-        NavigationView {
-            List {
-                Section(header: Text("Select a Contact")) {
-                    Text("Please select a contact to share location with")
-                        .foregroundColor(.secondary)
-                    
-                    Button("Select from Contacts") {
-                        // First dismiss this sheet
-                        presentationMode.wrappedValue.dismiss()
-                        
-                        // Then set a timer to show the contact picker after this sheet is dismissed
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            mockContactSelection()
+        ZStack {
+            // Background view
+            Color.clear
+                .contentShape(Rectangle())
+            
+            // Show the real contact picker
+            EmptyView()
+                .sheet(isPresented: $showingRealContactPicker) {
+                    RealContactPickerViewController(selectedContact: $selectedContact)
+                        .ignoresSafeArea()
+                        .onDisappear {
+                            if let contact = selectedContact {
+                                // Process the selected contact
+                                viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
+                                
+                                // Show confirmation message
+                                confirmationMessage = "Location sharing invitation sent to \(contact.givenName) \(contact.familyName)."
+                                showingMessageConfirmation = true
+                            }
+                            
+                            // Dismiss the wrapper
+                            presentationMode.wrappedValue.dismiss()
                         }
-                    }
                 }
+        }
+        .onAppear {
+            // Show the contact picker immediately
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                showingRealContactPicker = true
             }
-            .navigationTitle("Select Contact")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
         }
     }
+}
+
+// Bridge to UIKit's Contact Picker
+struct RealContactPickerViewController: UIViewControllerRepresentable {
+    @Binding var selectedContact: CNContact?
     
-    private func mockContactSelection() {
-        // Mock a contact selection
-        confirmationMessage = "Location sharing invitation sent to John Doe."
-        showingMessageConfirmation = true
+    func makeUIViewController(context: Context) -> CNContactPickerViewController {
+        let picker = CNContactPickerViewController()
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: CNContactPickerViewController, context: Context) {
+        // Nothing to update
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, CNContactPickerDelegate {
+        var parent: RealContactPickerViewController
+        
+        init(_ parent: RealContactPickerViewController) {
+            self.parent = parent
+        }
+        
+        func contactPickerDidCancel(_ picker: CNContactPickerViewController) {
+            // Handle cancellation
+        }
+        
+        func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
+            parent.selectedContact = contact
+        }
     }
 }
 
