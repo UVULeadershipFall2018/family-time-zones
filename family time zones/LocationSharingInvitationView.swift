@@ -13,7 +13,6 @@ struct LocationSharingInvitationView: View {
             List {
                 Section(header: Text("Send New Invitation")) {
                     Button(action: {
-                        // Show contact picker directly - no need to dismiss first
                         showingContactPicker = true
                     }) {
                         Label("Select Contact", systemImage: "person.crop.circle.badge.plus")
@@ -98,13 +97,7 @@ struct LocationSharingInvitationView: View {
                 }
             }
             .sheet(isPresented: $showingContactPicker) {
-                ContactPickerViewController(selectedContact: $selectedContact)
-                    .ignoresSafeArea()
-                    .onDisappear {
-                        if let contact = selectedContact {
-                            locationManager.sendLocationSharingInvitation(contact: contact)
-                        }
-                    }
+                DirectContactPickerView(selectedContact: $selectedContact, locationManager: locationManager)
             }
         }
     }
@@ -130,8 +123,36 @@ struct LocationSharingInvitationView: View {
     }
 }
 
-// Bridge to UIKit's Contact Picker
-struct ContactPickerViewController: UIViewControllerRepresentable {
+// Direct contact picker view that immediately shows the system contact picker
+struct DirectContactPickerView: View {
+    @Binding var selectedContact: CNContact?
+    var locationManager: LocationManager
+    @Environment(\.presentationMode) var presentationMode
+    @State private var showingSystemPicker = false
+    
+    var body: some View {
+        Color.clear
+            .sheet(isPresented: $showingSystemPicker) {
+                SystemContactPicker(selectedContact: $selectedContact)
+                    .ignoresSafeArea()
+                    .onDisappear {
+                        if let contact = selectedContact {
+                            locationManager.sendLocationSharingInvitation(contact: contact)
+                        }
+                        presentationMode.wrappedValue.dismiss()
+                    }
+            }
+            .onAppear {
+                // Show the system contact picker immediately
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    showingSystemPicker = true
+                }
+            }
+    }
+}
+
+// System contact picker
+struct SystemContactPicker: UIViewControllerRepresentable {
     @Binding var selectedContact: CNContact?
     
     func makeUIViewController(context: Context) -> CNContactPickerViewController {
@@ -149,9 +170,9 @@ struct ContactPickerViewController: UIViewControllerRepresentable {
     }
     
     class Coordinator: NSObject, CNContactPickerDelegate {
-        var parent: ContactPickerViewController
+        var parent: SystemContactPicker
         
-        init(_ parent: ContactPickerViewController) {
+        init(_ parent: SystemContactPicker) {
             self.parent = parent
         }
         
