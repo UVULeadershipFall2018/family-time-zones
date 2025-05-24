@@ -12,18 +12,12 @@ import ContactsUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
-    @State private var activeSheet: ActiveSheet?
+    @StateObject private var state = ContentViewState()
+    
+    // For editing existing contacts
     @State private var isEditingContact = false
     @State private var editingContactIndex: Int?
-    @State private var newContactName = ""
-    @State private var newContactTimeZone = TimeZone.current.identifier
-    @State private var newContactColor = "blue"
     @State private var searchText = ""
-    @State private var useLocationTracking = false
-    @State private var selectedAppleIdEmail: String?
-    @State private var hasAvailabilityWindow = false
-    @State private var availableStartTime = 0
-    @State private var availableEndTime = 24
     @State private var myTimeZone = TimeZone.current.identifier
     @State private var messageConfirmationText = ""
     @State private var showingMessageConfirmation = false
@@ -32,12 +26,14 @@ struct ContentView: View {
         case addContact
         case editContact
         case locationSharing
+        case contactPicker
         
         var id: Int {
             switch self {
             case .addContact: return 0
             case .editContact: return 1
             case .locationSharing: return 2
+            case .contactPicker: return 3
             }
         }
     }
@@ -216,18 +212,13 @@ struct ContentView: View {
             .navigationTitle("Family Time Zones")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        prepareForAdding()
-                        activeSheet = .addContact
-                    } label: {
-                        Label("Add Contact", systemImage: "plus")
-                    }
+                    toolbarAddButton
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
                     EditButton()
                 }
             }
-            .sheet(item: $activeSheet) { item in
+            .sheet(item: $state.activeSheet) { item in
                 switch item {
                 case .addContact:
                     contactFormView
@@ -235,19 +226,19 @@ struct ContentView: View {
                     ContactEditView(
                         viewModel: viewModel,
                         isShowing: Binding(
-                            get: { activeSheet == .editContact },
-                            set: { if !$0 { activeSheet = nil } }
+                            get: { state.activeSheet == .editContact },
+                            set: { if !$0 { state.activeSheet = nil } }
                         ),
                         isEditing: $isEditingContact,
                         editingIndex: $editingContactIndex,
-                        name: $newContactName,
-                        timeZoneIdentifier: $newContactTimeZone,
-                        color: $newContactColor,
-                        useLocationTracking: $useLocationTracking,
-                        selectedAppleIdEmail: $selectedAppleIdEmail,
-                        hasAvailabilityWindow: $hasAvailabilityWindow,
-                        availableStartTime: $availableStartTime,
-                        availableEndTime: $availableEndTime,
+                        name: $state.newContactName,
+                        timeZoneIdentifier: $state.newContactTimeZone,
+                        color: $state.newContactColor,
+                        useLocationTracking: $state.useLocationTracking,
+                        selectedAppleIdEmail: $state.selectedAppleIdEmail,
+                        hasAvailabilityWindow: $state.hasAvailabilityWindow,
+                        availableStartTime: $state.availableStartTime,
+                        availableEndTime: $state.availableEndTime,
                         searchText: $searchText
                     )
                 case .locationSharing:
@@ -255,7 +246,17 @@ struct ContentView: View {
                         viewModel: viewModel,
                         confirmationMessage: $messageConfirmationText
                     )
+                case .contactPicker:
+                    EmptyView() // Handle in fullScreenCover instead
                 }
+            }
+            .fullScreenCover(isPresented: Binding<Bool>(
+                get: { state.activeSheet == .contactPicker },
+                set: { if !$0 { state.activeSheet = nil } }
+            )) {
+                ContactPickerWrapper(viewModel: viewModel, 
+                                    showingMessageConfirmation: $showingMessageConfirmation, 
+                                    confirmationMessage: $messageConfirmationText)
             }
             .alert(isPresented: $showingMessageConfirmation) {
                 Alert(
@@ -271,6 +272,7 @@ struct ContentView: View {
                 )
             }
         }
+        .environmentObject(state)
     }
     
     private var contactListView: some View {
@@ -281,7 +283,7 @@ struct ContentView: View {
                         Button(action: {
                             if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
                                 prepareForEditing(contactIndex: index)
-                                activeSheet = .editContact
+                                state.activeSheet = .editContact
                             }
                         }) {
                             Label("Edit", systemImage: "pencil")
@@ -299,7 +301,7 @@ struct ContentView: View {
                     .onTapGesture {
                         if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
                             prepareForEditing(contactIndex: index)
-                            activeSheet = .editContact
+                            state.activeSheet = .editContact
                         }
                     }
             }
@@ -307,11 +309,10 @@ struct ContentView: View {
             
             Button(action: {
                 prepareForAdding()
-                activeSheet = .addContact
             }) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                    Text("Add New Contact")
+                    Text("Select Contact to Add")
                 }
             }
         }
@@ -319,8 +320,30 @@ struct ContentView: View {
     
     private var contactFormView: some View {
         Form {
-            Section(header: Text("Name")) {
-                TextField("Contact Name", text: $newContactName)
+            Section(header: Text("Contact Information")) {
+                if !isEditingContact {
+                    Text("This contact was selected from your address book. You can customize additional details below.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 5)
+                }
+                
+                VStack(alignment: .leading) {
+                    Text("Contact Name")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Contact Name", text: $state.newContactName)
+                        .font(.body)
+                }
+                
+                if !state.selectedAppleIdEmail.isNilOrEmpty {
+                    HStack {
+                        Text("Email")
+                        Spacer()
+                        Text(state.selectedAppleIdEmail ?? "")
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             
             Section(header: Text("Color")) {
@@ -333,34 +356,34 @@ struct ContentView: View {
             }
             
             Section(header: Text("Location Tracking")) {
-                Toggle("Use Location for Time Zone", isOn: $useLocationTracking)
+                Toggle("Use Location for Time Zone", isOn: $state.useLocationTracking)
                 
-                if useLocationTracking {
+                if state.useLocationTracking {
                     Text("Select the person who shares their location with you:")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    FindMyContactPicker(viewModel: viewModel, selectedEmail: $selectedAppleIdEmail)
+                    FindMyContactPicker(viewModel: viewModel, selectedEmail: $state.selectedAppleIdEmail)
                 }
             }
             
             Section(header: Text("Availability Window")) {
-                Toggle("Set Availability Hours", isOn: $hasAvailabilityWindow)
+                Toggle("Set Availability Hours", isOn: $state.hasAvailabilityWindow)
                 
-                if hasAvailabilityWindow {
+                if state.hasAvailabilityWindow {
                     HStack {
                         Text("Start Time")
                         Spacer()
-                        TimePicker(minutes: $availableStartTime)
+                        TimePicker(minutes: $state.availableStartTime)
                     }
                     
                     HStack {
                         Text("End Time")
                         Spacer()
-                        TimePicker(minutes: $availableEndTime)
+                        TimePicker(minutes: $state.availableEndTime)
                     }
                     
-                    Text("Contact's local time (\(formatTimeZoneForDisplay(newContactTimeZone)))")
+                    Text("Contact's local time (\(formatTimeZoneForDisplay(state.newContactTimeZone)))")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -375,13 +398,13 @@ struct ContentView: View {
             }
             
             Section(header: Text("Time Zone")) {
-                if !useLocationTracking {
+                if !state.useLocationTracking {
                     TextField("Search Time Zones", text: $searchText)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                     
                     timeZoneListView
-                } else if let email = selectedAppleIdEmail, 
+                } else if let email = state.selectedAppleIdEmail, 
                           let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == email }),
                           let timeZone = contact.timeZone {
                     HStack {
@@ -396,26 +419,26 @@ struct ContentView: View {
                         Image(systemName: "location.fill")
                             .foregroundColor(.blue)
                     }
-                } else if useLocationTracking {
+                } else if state.useLocationTracking {
                     Text("Select a contact who shares their location with you")
                         .foregroundColor(.secondary)
                 }
             }
             
             Section {
-                Button("Cancel") {
-                    activeSheet = nil
+                Button(isEditingContact ? "Cancel Edit" : "Cancel Adding Contact") {
+                    state.activeSheet = nil
                     resetForm()
                 }
                 .foregroundColor(.red)
                 
-                Button(isEditingContact ? "Save Changes" : "Add Contact") {
+                Button(isEditingContact ? "Save Changes" : "Add to Family Time Zones") {
                     saveContactAction()
                 }
-                .disabled(newContactName.isEmpty || (useLocationTracking && selectedAppleIdEmail == nil))
+                .disabled(state.newContactName.isEmpty || (state.useLocationTracking && state.selectedAppleIdEmail == nil))
             }
         }
-        .navigationTitle(isEditingContact ? "Edit Contact" : "Add New Contact")
+        .navigationTitle(isEditingContact ? "Edit Contact" : "New Contact")
     }
     
     private var timeZoneListView: some View {
@@ -430,21 +453,21 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading) {
                 Text(formatTimeZoneForDisplay(timeZone))
-                    .fontWeight(newContactTimeZone == timeZone ? .bold : .regular)
+                    .fontWeight(state.newContactTimeZone == timeZone ? .bold : .regular)
                 
                 timeZoneDetailsView(for: timeZone)
             }
             
             Spacer()
             
-            if newContactTimeZone == timeZone {
+            if state.newContactTimeZone == timeZone {
                 Image(systemName: "checkmark")
                     .foregroundColor(.blue)
             }
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            newContactTimeZone = timeZone
+            state.newContactTimeZone = timeZone
         }
     }
     
@@ -472,11 +495,11 @@ struct ContentView: View {
             .frame(width: 40, height: 40)
             .overlay(
                 Circle()
-                    .stroke(Color.primary, lineWidth: newContactColor == color ? 2 : 0)
+                    .stroke(Color.primary, lineWidth: state.newContactColor == color ? 2 : 0)
             )
             .padding(5)
             .onTapGesture {
-                newContactColor = color
+                state.newContactColor = color
             }
     }
     
@@ -497,9 +520,9 @@ struct ContentView: View {
     
     private func saveContactAction() {
         // Get the correct time zone based on selection
-        var timeZoneIdentifier = newContactTimeZone
-        if useLocationTracking,
-           let email = selectedAppleIdEmail,
+        var timeZoneIdentifier = state.newContactTimeZone
+        if state.useLocationTracking,
+           let email = state.selectedAppleIdEmail,
            let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == email }),
            let timeZone = contact.timeZone {
             timeZoneIdentifier = timeZone.identifier
@@ -508,29 +531,29 @@ struct ContentView: View {
         if isEditingContact, let index = editingContactIndex {
             // Update the existing contact
             var updatedContact = viewModel.contacts[index]
-            updatedContact.name = newContactName
+            updatedContact.name = state.newContactName
             updatedContact.timeZoneIdentifier = timeZoneIdentifier
-            updatedContact.color = newContactColor
-            updatedContact.useLocationForTimeZone = useLocationTracking
-            updatedContact.email = selectedAppleIdEmail ?? ""
+            updatedContact.color = state.newContactColor
+            updatedContact.useLocationForTimeZone = state.useLocationTracking
+            updatedContact.email = state.selectedAppleIdEmail ?? ""
             // Handle availability window
-            updatedContact.availableStartTime = hasAvailabilityWindow ? availableStartTime : 0
-            updatedContact.availableEndTime = hasAvailabilityWindow ? availableEndTime : 24 * 60
+            updatedContact.availableStartTime = state.hasAvailabilityWindow ? state.availableStartTime : 0
+            updatedContact.availableEndTime = state.hasAvailabilityWindow ? state.availableEndTime : 24 * 60
             
             viewModel.contacts[index] = updatedContact
             viewModel.saveContacts()
         } else {
             // Add new contact
             let newContact = Contact(
-                name: newContactName,
+                name: state.newContactName,
                 timeZoneIdentifier: timeZoneIdentifier,
-                color: newContactColor,
-                useLocationTracking: useLocationTracking,
-                appleIdEmail: selectedAppleIdEmail,
+                color: state.newContactColor,
+                useLocationTracking: state.useLocationTracking,
+                appleIdEmail: state.selectedAppleIdEmail,
                 lastLocationUpdate: nil,
-                hasAvailabilityWindow: hasAvailabilityWindow,
-                availableStartTime: hasAvailabilityWindow ? availableStartTime : 0,
-                availableEndTime: hasAvailabilityWindow ? availableEndTime : 24 * 60
+                hasAvailabilityWindow: state.hasAvailabilityWindow,
+                availableStartTime: state.hasAvailabilityWindow ? state.availableStartTime : 0,
+                availableEndTime: state.hasAvailabilityWindow ? state.availableEndTime : 24 * 60
             )
             viewModel.contacts.append(newContact)
             viewModel.saveContacts()
@@ -540,7 +563,7 @@ struct ContentView: View {
         WidgetCenter.shared.reloadAllTimelines()
         print("App: Manually refreshed widget timelines after saving contact")
         
-        activeSheet = nil
+        state.activeSheet = nil
         resetForm()
     }
     
@@ -560,14 +583,14 @@ struct ContentView: View {
     
     private func prepareForEditing(contactIndex: Int) {
         let contact = viewModel.contacts[contactIndex]
-        newContactName = contact.name
-        newContactTimeZone = contact.timeZoneIdentifier
-        newContactColor = contact.color
-        useLocationTracking = contact.useLocationForTimeZone
-        selectedAppleIdEmail = contact.email
-        hasAvailabilityWindow = contact.hasAvailabilityWindow
-        availableStartTime = contact.availableStartTime
-        availableEndTime = contact.availableEndTime
+        state.newContactName = contact.name
+        state.newContactTimeZone = contact.timeZoneIdentifier
+        state.newContactColor = contact.color
+        state.useLocationTracking = contact.useLocationForTimeZone
+        state.selectedAppleIdEmail = contact.email
+        state.hasAvailabilityWindow = contact.hasAvailabilityWindow
+        state.availableStartTime = contact.availableStartTime
+        state.availableEndTime = contact.availableEndTime
         editingContactIndex = contactIndex
         isEditingContact = true
     }
@@ -575,36 +598,44 @@ struct ContentView: View {
     private func prepareForAdding() {
         isEditingContact = false
         editingContactIndex = nil
-        resetForm()
+        state.resetForm()
+        
+        // Start with contact picker immediately instead of showing form first
+        showContactPickerForNewContact()
+    }
+    
+    private func showContactPickerForNewContact() {
+        // Show contact picker directly and then populate form with selected contact
+        state.activeSheet = .contactPicker
     }
     
     private func resetForm() {
-        newContactName = ""
-        newContactTimeZone = TimeZone.current.identifier
-        newContactColor = "blue"
+        state.newContactName = ""
+        state.newContactTimeZone = TimeZone.current.identifier
+        state.newContactColor = "blue"
         searchText = ""
         isEditingContact = false
         editingContactIndex = nil
-        useLocationTracking = false
-        selectedAppleIdEmail = nil
-        hasAvailabilityWindow = false
-        availableStartTime = 8 * 60 // 8:00 AM
-        availableEndTime = 22 * 60 // 10:00 PM
+        state.useLocationTracking = false
+        state.selectedAppleIdEmail = nil
+        state.hasAvailabilityWindow = false
+        state.availableStartTime = 8 * 60 // 8:00 AM
+        state.availableEndTime = 22 * 60 // 10:00 PM
         myTimeZone = TimeZone.current.identifier
     }
     
     private func checkAvailability() -> Bool {
         // Create a temporary contact with the current form values to check availability
         let tempContact = Contact(
-            name: newContactName,
-            timeZoneIdentifier: newContactTimeZone,
-            color: newContactColor,
-            useLocationTracking: useLocationTracking,
-            appleIdEmail: selectedAppleIdEmail,
+            name: state.newContactName,
+            timeZoneIdentifier: state.newContactTimeZone,
+            color: state.newContactColor,
+            useLocationTracking: state.useLocationTracking,
+            appleIdEmail: state.selectedAppleIdEmail,
             lastLocationUpdate: nil as Date?,
-            hasAvailabilityWindow: hasAvailabilityWindow,
-            availableStartTime: availableStartTime,
-            availableEndTime: availableEndTime
+            hasAvailabilityWindow: state.hasAvailabilityWindow,
+            availableStartTime: state.availableStartTime,
+            availableEndTime: state.availableEndTime
         )
         
         return tempContact.isAvailable()
@@ -654,7 +685,16 @@ struct ContentView: View {
     
     // Method to handle location sharing for a contact
     func showLocationSharingInvitationView() {
-        activeSheet = .locationSharing
+        state.activeSheet = .locationSharing
+    }
+    
+    // Update toolbar button action
+    private var toolbarAddButton: some View {
+        Button {
+            prepareForAdding()
+        } label: {
+            Label("Select Contact", systemImage: "plus")
+        }
     }
 }
 
@@ -1268,31 +1308,60 @@ struct LocationSharingInvitationView: View {
     }
 }
 
-// Add ContactPickerWrapper with real contact picker functionality
+// ContactPickerWrapper for adding new contacts
 struct ContactPickerWrapper: View {
     var viewModel: ContactViewModel
     @Binding var showingMessageConfirmation: Bool
     @Binding var confirmationMessage: String
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var contentView: ContentViewState
     
     var body: some View {
         RealContactPickerViewController(selectedContact: Binding<CNContact?>(
             get: { nil },
             set: { contact in
                 if let contact = contact {
-                    // Process the selected contact
-                    viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
-                    
-                    // Show confirmation message
-                    confirmationMessage = "Location sharing invitation sent to \(contact.givenName) \(contact.familyName)."
-                    showingMessageConfirmation = true
+                    // For adding new contacts
+                    if contentView.activeSheet == .contactPicker {
+                        // Populate the form with contact info
+                        let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+                        contentView.newContactName = fullName.isEmpty ? contact.organizationName : fullName
+                        
+                        // Find Apple ID email if available (typically ends with @icloud.com)
+                        if !contact.emailAddresses.isEmpty {
+                            let appleEmail = contact.emailAddresses.first { 
+                                ($0.value as String).lowercased().contains("@icloud.com") 
+                            }
+                            contentView.selectedAppleIdEmail = (appleEmail?.value as String?) ?? 
+                                                               (contact.emailAddresses.first?.value as String?) ?? ""
+                        }
+                        
+                        // Show the add contact form
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            contentView.activeSheet = .addContact
+                        }
+                    } 
+                    // For location sharing invitations
+                    else {
+                        // Process the selected contact for location sharing
+                        viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
+                        
+                        // Show confirmation message
+                        let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+                        let displayName = fullName.isEmpty ? contact.organizationName : fullName
+                        confirmationMessage = "Location sharing invitation sent to \(displayName)."
+                        showingMessageConfirmation = true
+                    }
                 }
                 
-                // Dismiss the wrapper
-                presentationMode.wrappedValue.dismiss()
+                // Dismiss the picker if not going to addContact
+                if contentView.activeSheet != .contactPicker {
+                    presentationMode.wrappedValue.dismiss()
+                }
             }
         ))
         .ignoresSafeArea()
+        .environmentObject(contentView)
     }
 }
 
@@ -1328,6 +1397,37 @@ struct RealContactPickerViewController: UIViewControllerRepresentable {
         func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
             parent.selectedContact = contact
         }
+    }
+}
+
+// ContentViewState to share data between ContentView and ContactPickerWrapper
+class ContentViewState: ObservableObject {
+    @Published var activeSheet: ContentView.ActiveSheet?
+    @Published var newContactName = ""
+    @Published var newContactTimeZone = TimeZone.current.identifier
+    @Published var newContactColor = "blue"
+    @Published var useLocationTracking = false
+    @Published var selectedAppleIdEmail: String?
+    @Published var hasAvailabilityWindow = false
+    @Published var availableStartTime = 0
+    @Published var availableEndTime = 24
+    
+    func resetForm() {
+        newContactName = ""
+        newContactTimeZone = TimeZone.current.identifier
+        newContactColor = "blue"
+        useLocationTracking = false
+        selectedAppleIdEmail = nil
+        hasAvailabilityWindow = false
+        availableStartTime = 8 * 60 // 8:00 AM
+        availableEndTime = 22 * 60 // 10:00 PM
+    }
+}
+
+// Extension to check if Optional String is nil or empty
+extension Optional where Wrapped == String {
+    var isNilOrEmpty: Bool {
+        self == nil || self!.isEmpty
     }
 }
 
