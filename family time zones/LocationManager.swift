@@ -83,7 +83,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     
     private let locationManager = CLLocationManager()
     private var locationInvitations: [LocationSharingInvitation] = []
-    private var findMyManager: FMNetwork?
+    var findMyManager: FMNetwork?
     
     // Create a shared instance for deep linking
     static let shared = LocationManager()
@@ -209,48 +209,19 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     // MARK: - FindMy Integration
     
     private func initializeFindMy() {
-        // In a real implementation, we would initialize the FindMy framework here
-        // This is a mock implementation since we don't have access to the actual API
-        
-        print("Initializing FindMy framework")
-        // Initialize the mock FindMy network
+        // Initialize mock FindMy for backward compatibility
         findMyManager = FMNetwork()
-        findMyManager?.delegate = self
-        
-        // For the prototype, we'll load mock data
-        loadMockFindMyContacts()
     }
     
     private func loadMockFindMyContacts() {
-        // Mock data for testing
-        let contact1 = FindMyContact(
-            id: "1",
-            name: "John Smith",
-            email: "john@example.com",
-            lastLocation: CLLocation(latitude: 40.7128, longitude: -74.0060) // New York
-        )
-        
-        let contact2 = FindMyContact(
-            id: "2",
-            name: "Jane Doe",
-            email: "jane@example.com",
-            lastLocation: CLLocation(latitude: 34.0522, longitude: -118.2437) // Los Angeles
-        )
-        
-        let contact3 = FindMyContact(
-            id: "3",
-            name: "Akira Tanaka",
-            email: "akira@example.com",
-            lastLocation: CLLocation(latitude: 35.6762, longitude: 139.6503) // Tokyo
-        )
-        
-        findMyContacts = [contact1, contact2, contact3]
+        // This method is no longer needed with the invitation system
+        // The shared contacts will be loaded from locationInvitations instead
     }
     
     func refreshFindMyContacts() {
         // In a real implementation, this would refresh data from FindMy
-        // For now, we'll just re-load our mock data
-        loadMockFindMyContacts()
+        // Now we just update shared location contacts from invitations
+        updateSharedLocationContacts()
     }
     
     // MARK: - Time Zone Lookup
@@ -489,6 +460,25 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
             } catch {
                 print("Error loading invitations: \(error.localizedDescription)")
             }
+        }
+        
+        // If no saved invitations, add a sample mock contact for testing
+        if locationInvitations.isEmpty {
+            // Add a sample invitation
+            let sampleInvitation = LocationSharingInvitation(
+                id: "sample1",
+                contactName: "John Smith",
+                contactEmail: "john@example.com"
+            )
+            sampleInvitation.invitationStatus = .accepted
+            sampleInvitation.lastLocationUpdate = Date()
+            sampleInvitation.lastKnownLocation = LocationSharingInvitation.LocationData(
+                latitude: 40.7128,
+                longitude: -74.0060 // New York
+            )
+            
+            locationInvitations.append(sampleInvitation)
+            updateSharedLocationContacts()
         }
     }
     

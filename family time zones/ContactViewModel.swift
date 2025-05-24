@@ -227,7 +227,11 @@ class ContactViewModel: ObservableObject {
     }
     
     private func setupFindMyListener() {
-        // No longer needed with new invitation system
+        // Set up as delegate for the FMNetwork
+        locationManager.findMyManager?.delegate = self
+        
+        // Load initial shared location contacts
+        loadSharedLocationContacts()
     }
     
     func refreshFindMyContacts() {
@@ -273,21 +277,21 @@ class ContactViewModel: ObservableObject {
 
 // MARK: - FMNetworkDelegate
 extension ContactViewModel: FMNetworkDelegate {
-    func didReceiveUpdate(items: [FMItem]) {
+    func network(_ network: FMNetwork, didUpdateItems items: [FMItem]) {
         DispatchQueue.main.async {
             // Process FindMy items and update contacts if needed
             self.processFindMyContacts(items)
         }
     }
     
-    func didReceiveError(_ error: Error) {
+    func network(_ network: FMNetwork, didFailWithError error: Error) {
         print("FindMy error: \(error.localizedDescription)")
     }
     
     private func processFindMyContacts(_ items: [FMItem]) {
         for item in items {
             // Check if we already have this contact
-            if let index = contacts.firstIndex(where: { $0.id == item.identifier }) {
+            if let index = contacts.firstIndex(where: { $0.id == item.id }) {
                 // Update existing contact with new location data
                 var updatedContact = contacts[index]
                 

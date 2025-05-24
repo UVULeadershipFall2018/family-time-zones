@@ -7,7 +7,7 @@ struct FindMyContactPicker: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(viewModel.availableFindMyContacts()) { contact in
+                ForEach(viewModel.availableSharedLocationContacts()) { contact in
                     Button(action: {
                         selectedEmail = contact.email
                     }) {
@@ -35,7 +35,7 @@ struct FindMyContactPicker: View {
                     Divider()
                 }
                 
-                if viewModel.availableFindMyContacts().isEmpty {
+                if viewModel.availableSharedLocationContacts().isEmpty {
                     Text("No contacts available who share their location")
                         .foregroundColor(.secondary)
                         .padding(.vertical, 10)

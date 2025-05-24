@@ -315,7 +315,7 @@ struct ContentView: View {
                         
                         timeZoneListView
                     } else if let email = selectedAppleIdEmail, 
-                              let contact = viewModel.locationManager.findMyContacts.first(where: { $0.email == email }),
+                              let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == email }),
                               let timeZone = contact.timeZone {
                         HStack {
                             VStack(alignment: .leading) {
@@ -431,7 +431,7 @@ struct ContentView: View {
         var timeZoneIdentifier = newContactTimeZone
         if useLocationTracking,
            let email = selectedAppleIdEmail,
-           let contact = viewModel.locationManager.findMyContacts.first(where: { $0.email == email }),
+           let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == email }),
            let timeZone = contact.timeZone {
             timeZoneIdentifier = timeZone.identifier
         }
