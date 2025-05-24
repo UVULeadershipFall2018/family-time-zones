@@ -1175,7 +1175,9 @@ struct LocationSharingInvitationView: View {
     @ObservedObject var viewModel: ContactViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
+    @State private var needsToShowContactPicker = false
     @Binding var confirmationMessage: String
+    @State private var showingMessageConfirmation = false
     
     var body: some View {
         NavigationView {
@@ -1212,7 +1214,14 @@ struct LocationSharingInvitationView: View {
                     }
                     
                     Button(action: {
-                        showingContactPicker = true
+                        if presentationMode.wrappedValue.isPresented {
+                            // First dismiss this view, then show contact picker
+                            needsToShowContactPicker = true
+                            presentationMode.wrappedValue.dismiss()
+                        } else {
+                            // Show contact picker directly
+                            showingContactPicker = true
+                        }
                     }) {
                         Label("Invite a Contact", systemImage: "person.badge.plus")
                     }
@@ -1242,11 +1251,17 @@ struct LocationSharingInvitationView: View {
                     dismissButton: .default(Text("OK"))
                 )
             }
+            .onAppear {
+                // If we need to show the contact picker after a dismissal
+                if needsToShowContactPicker {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingContactPicker = true
+                        needsToShowContactPicker = false
+                    }
+                }
+            }
         }
     }
-    
-    // Add a showingMessageConfirmation state
-    @State private var showingMessageConfirmation = false
 }
 
 // Add ContactPickerWrapper without using CNContactPickerViewController
@@ -1255,6 +1270,7 @@ struct ContactPickerWrapper: View {
     @Binding var showingMessageConfirmation: Bool
     @Binding var confirmationMessage: String
     @Environment(\.presentationMode) var presentationMode
+    @State private var isShowingContactPicker = false
     
     var body: some View {
         NavigationView {
@@ -1264,8 +1280,13 @@ struct ContactPickerWrapper: View {
                         .foregroundColor(.secondary)
                     
                     Button("Select from Contacts") {
-                        // Mock selecting a contact
-                        mockContactSelection()
+                        // First dismiss this sheet
+                        presentationMode.wrappedValue.dismiss()
+                        
+                        // Then set a timer to show the contact picker after this sheet is dismissed
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            mockContactSelection()
+                        }
                     }
                 }
             }
@@ -1280,7 +1301,6 @@ struct ContactPickerWrapper: View {
         // Mock a contact selection
         confirmationMessage = "Location sharing invitation sent to John Doe."
         showingMessageConfirmation = true
-        presentationMode.wrappedValue.dismiss()
     }
 }
 

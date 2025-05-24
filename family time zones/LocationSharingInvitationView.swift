@@ -7,13 +7,21 @@ struct LocationSharingInvitationView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
     @State private var selectedContact: CNContact?
+    @State private var needsToShowContactPicker = false
     
     var body: some View {
         NavigationView {
             List {
                 Section(header: Text("Send New Invitation")) {
                     Button(action: {
-                        showingContactPicker = true
+                        if presentationMode.wrappedValue.isPresented {
+                            // First dismiss this view, then show contact picker
+                            needsToShowContactPicker = true
+                            presentationMode.wrappedValue.dismiss()
+                        } else {
+                            // Show contact picker directly
+                            showingContactPicker = true
+                        }
                     }) {
                         Label("Select Contact", systemImage: "person.crop.circle.badge.plus")
                     }
@@ -104,6 +112,15 @@ struct LocationSharingInvitationView: View {
                             locationManager.sendLocationSharingInvitation(contact: contact)
                         }
                     }
+            }
+            .onAppear {
+                // If we need to show the contact picker after a dismissal
+                if needsToShowContactPicker {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingContactPicker = true
+                        needsToShowContactPicker = false
+                    }
+                }
             }
         }
     }
