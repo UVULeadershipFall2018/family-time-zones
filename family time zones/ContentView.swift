@@ -1254,41 +1254,25 @@ struct ContactPickerWrapper: View {
     @Binding var showingMessageConfirmation: Bool
     @Binding var confirmationMessage: String
     @Environment(\.presentationMode) var presentationMode
-    @State private var showingRealContactPicker = false
-    @State private var selectedContact: CNContact?
     
     var body: some View {
-        ZStack {
-            // Background view
-            Color.clear
-                .contentShape(Rectangle())
-            
-            // Show the real contact picker
-            EmptyView()
-                .sheet(isPresented: $showingRealContactPicker) {
-                    RealContactPickerViewController(selectedContact: $selectedContact)
-                        .ignoresSafeArea()
-                        .onDisappear {
-                            if let contact = selectedContact {
-                                // Process the selected contact
-                                viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
-                                
-                                // Show confirmation message
-                                confirmationMessage = "Location sharing invitation sent to \(contact.givenName) \(contact.familyName)."
-                                showingMessageConfirmation = true
-                            }
-                            
-                            // Dismiss the wrapper
-                            presentationMode.wrappedValue.dismiss()
-                        }
+        RealContactPickerViewController(selectedContact: Binding<CNContact?>(
+            get: { nil },
+            set: { contact in
+                if let contact = contact {
+                    // Process the selected contact
+                    viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
+                    
+                    // Show confirmation message
+                    confirmationMessage = "Location sharing invitation sent to \(contact.givenName) \(contact.familyName)."
+                    showingMessageConfirmation = true
                 }
-        }
-        .onAppear {
-            // Show the contact picker immediately
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                showingRealContactPicker = true
+                
+                // Dismiss the wrapper
+                presentationMode.wrappedValue.dismiss()
             }
-        }
+        ))
+        .ignoresSafeArea()
     }
 }
 

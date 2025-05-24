@@ -128,25 +128,15 @@ struct DirectContactPickerView: View {
     @Binding var selectedContact: CNContact?
     var locationManager: LocationManager
     @Environment(\.presentationMode) var presentationMode
-    @State private var showingSystemPicker = false
     
     var body: some View {
-        Color.clear
-            .sheet(isPresented: $showingSystemPicker) {
-                SystemContactPicker(selectedContact: $selectedContact)
-                    .ignoresSafeArea()
-                    .onDisappear {
-                        if let contact = selectedContact {
-                            locationManager.sendLocationSharingInvitation(contact: contact)
-                        }
-                        presentationMode.wrappedValue.dismiss()
-                    }
-            }
-            .onAppear {
-                // Show the system contact picker immediately
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    showingSystemPicker = true
+        SystemContactPicker(selectedContact: $selectedContact)
+            .ignoresSafeArea()
+            .onDisappear {
+                if let contact = selectedContact {
+                    locationManager.sendLocationSharingInvitation(contact: contact)
                 }
+                presentationMode.wrappedValue.dismiss()
             }
     }
 }
