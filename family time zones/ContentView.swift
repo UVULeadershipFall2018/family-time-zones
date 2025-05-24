@@ -442,11 +442,11 @@ struct ContentView: View {
             updatedContact.name = newContactName
             updatedContact.timeZoneIdentifier = timeZoneIdentifier
             updatedContact.color = newContactColor
-            updatedContact.useLocationTracking = useLocationTracking
-            updatedContact.appleIdEmail = selectedAppleIdEmail
-            updatedContact.hasAvailabilityWindow = hasAvailabilityWindow
-            updatedContact.availableStartTime = availableStartTime
-            updatedContact.availableEndTime = availableEndTime
+            updatedContact.useLocationForTimeZone = useLocationTracking
+            updatedContact.email = selectedAppleIdEmail ?? ""
+            // Handle availability window
+            updatedContact.availableStartTime = hasAvailabilityWindow ? availableStartTime : 0
+            updatedContact.availableEndTime = hasAvailabilityWindow ? availableEndTime : 24 * 60
             
             viewModel.contacts[index] = updatedContact
             viewModel.saveContacts()
@@ -459,8 +459,8 @@ struct ContentView: View {
                 useLocationTracking: useLocationTracking,
                 appleIdEmail: selectedAppleIdEmail,
                 hasAvailabilityWindow: hasAvailabilityWindow,
-                availableStartTime: availableStartTime,
-                availableEndTime: availableEndTime
+                availableStartTime: hasAvailabilityWindow ? availableStartTime : 0,
+                availableEndTime: hasAvailabilityWindow ? availableEndTime : 24 * 60
             )
             viewModel.contacts.append(newContact)
             viewModel.saveContacts()
@@ -493,8 +493,8 @@ struct ContentView: View {
         newContactName = contact.name
         newContactTimeZone = contact.timeZoneIdentifier
         newContactColor = contact.color
-        useLocationTracking = contact.useLocationTracking
-        selectedAppleIdEmail = contact.appleIdEmail
+        useLocationTracking = contact.useLocationForTimeZone
+        selectedAppleIdEmail = contact.email
         hasAvailabilityWindow = contact.hasAvailabilityWindow
         availableStartTime = contact.availableStartTime
         availableEndTime = contact.availableEndTime
@@ -575,7 +575,7 @@ struct ContactRow: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        if contact.useLocationTracking {
+                        if contact.useLocationForTimeZone {
                             Image(systemName: "location.fill")
                                 .foregroundColor(.blue)
                                 .font(.caption)
@@ -592,7 +592,7 @@ struct ContactRow: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        if contact.useLocationTracking {
+                        if contact.useLocationForTimeZone {
                             Text("•")
                                 .font(.caption)
                                 .foregroundColor(.secondary)

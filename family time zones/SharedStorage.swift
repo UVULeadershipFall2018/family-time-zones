@@ -2,73 +2,49 @@ import Foundation
 import WidgetKit
 
 struct SharedStorage {
-    static let saveKey = "savedContacts"
+    // The app group identifier used to share data between app and widget
     static let appGroupIdentifier = "group.com.tjandtroy.FamilyTimezoneApp"
     
+    // Key for contacts in UserDefaults
+    static let contactsKey = "contacts"
+    
+    // Save contacts to shared storage
     static func saveContacts(_ contacts: [Contact]) {
-        if let encoded = try? JSONEncoder().encode(contacts) {
-            // Save to both standard UserDefaults and shared container
-            UserDefaults.standard.set(encoded, forKey: saveKey)
-            
-            // Save to shared container for widget access
-            if let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) {
-                sharedDefaults.set(encoded, forKey: saveKey)
-                print("Data saved to shared container: \(contacts.count) contacts")
-            } else {
-                print("Failed to access shared UserDefaults with App Group: \(appGroupIdentifier)")
-            }
-            
-            // Force widget refresh
-            WidgetCenter.shared.reloadAllTimelines()
+        guard let userDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            print("Error: Could not access shared UserDefaults")
+            return
+        }
+        
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(contacts)
+            userDefaults.set(data, forKey: contactsKey)
+            print("Saved \(contacts.count) contacts to shared storage")
+        } catch {
+            print("Error saving contacts: \(error.localizedDescription)")
         }
     }
     
+    // Load contacts from shared storage
     static func loadContacts() -> [Contact] {
-        // First try to load from shared container
-        if let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier),
-           let savedContacts = sharedDefaults.data(forKey: saveKey) {
-            do {
-                let decodedContacts = try JSONDecoder().decode([Contact].self, from: savedContacts)
-                print("Loaded \(decodedContacts.count) contacts from shared container")
-                return decodedContacts
-            } catch {
-                print("Error decoding data from shared container: \(error)")
-            }
-        } else {
-            print("No data found in shared container or could not access App Group")
+        guard let userDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            print("Error: Could not access shared UserDefaults")
+            return []
         }
         
-        // Fall back to standard UserDefaults
-        if let savedContacts = UserDefaults.standard.data(forKey: saveKey) {
-            do {
-                let decodedContacts = try JSONDecoder().decode([Contact].self, from: savedContacts)
-                print("Loaded \(decodedContacts.count) contacts from standard UserDefaults")
-                
-                // If we found contacts in standard defaults but not shared container,
-                // copy them to the shared container for the widget
-                if let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) {
-                    sharedDefaults.set(savedContacts, forKey: saveKey)
-                    print("Copied data to shared container")
-                    WidgetCenter.shared.reloadAllTimelines()
-                }
-                
-                return decodedContacts
-            } catch {
-                print("Error decoding data from standard UserDefaults: \(error)")
-            }
+        guard let data = userDefaults.data(forKey: contactsKey) else {
+            print("No saved contacts found")
+            return []
         }
         
-        // Return sample data if nothing found
-        print("No saved contacts found, using sample data")
-        let sampleContacts = [
-            Contact(name: "Family (New York)", timeZoneIdentifier: "America/New_York", color: "blue"),
-            Contact(name: "Friend (Tokyo)", timeZoneIdentifier: "Asia/Tokyo", color: "green"),
-            Contact(name: "Work (London)", timeZoneIdentifier: "Europe/London", color: "orange")
-        ]
-        
-        // Save sample data to shared container
-        saveContacts(sampleContacts)
-        
-        return sampleContacts
+        do {
+            let decoder = JSONDecoder()
+            let contacts = try decoder.decode([Contact].self, from: data)
+            print("Loaded \(contacts.count) contacts from shared storage")
+            return contacts
+        } catch {
+            print("Error loading contacts: \(error.localizedDescription)")
+            return []
+        }
     }
 } 

@@ -1,108 +1,182 @@
 import WidgetKit
 import SwiftUI
+import Intents
+
+struct SimpleEntry: TimelineEntry {
+    let date: Date
+    let contacts: [Contact]
+    
+    // Helper to format a contact's time
+    func formatTime(for contact: Contact) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = contact.timeZone
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+}
 
 struct Provider: TimelineProvider {
-    typealias Entry = ContactsEntry
-    
-    func placeholder(in context: Context) -> ContactsEntry {
-        ContactsEntry(date: Date(), contacts: getSampleContacts())
+    func placeholder(in context: Context) -> SimpleEntry {
+        SimpleEntry(date: Date(), contacts: loadSampleContacts())
     }
-
-    func getSnapshot(in context: Context, completion: @escaping (ContactsEntry) -> ()) {
-        let entry = ContactsEntry(date: Date(), contacts: SharedStorage.loadContacts())
+    
+    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> Void) {
+        let entry = SimpleEntry(date: Date(), contacts: loadContacts())
         completion(entry)
     }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        var entries: [ContactsEntry] = []
+    
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> Void) {
+        // Create a timeline with entries for every minute
+        var entries: [SimpleEntry] = []
         
-        // Generate a timeline with entries for every minute
+        // Create entries for the next 24 hours
         let currentDate = Date()
-        let contacts = SharedStorage.loadContacts()
+        let calendar = Calendar.current
         
+        // Update every minute for the first hour, then hourly
         for minuteOffset in 0..<60 {
-            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
-            let entry = ContactsEntry(date: entryDate, contacts: contacts)
+            let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
+            let entry = SimpleEntry(date: entryDate, contacts: loadContacts())
             entries.append(entry)
         }
-
+        
+        for hourOffset in 1..<24 {
+            let entryDate = calendar.date(byAdding: .hour, value: hourOffset, to: currentDate)!
+            let entry = SimpleEntry(date: entryDate, contacts: loadContacts())
+            entries.append(entry)
+        }
+        
         let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
     
-    private func getSampleContacts() -> [Contact] {
+    private func loadContacts() -> [Contact] {
+        return SharedStorage.loadContacts()
+    }
+    
+    private func loadSampleContacts() -> [Contact] {
         return [
-            Contact(name: "Family (NY)", timeZoneIdentifier: "America/New_York", color: "blue"),
-            Contact(name: "Friend (Tokyo)", timeZoneIdentifier: "Asia/Tokyo", color: "green"),
-            Contact(name: "Work (London)", timeZoneIdentifier: "Europe/London", color: "orange")
+            Contact(
+                name: "Jane (New York)",
+                timeZoneIdentifier: "America/New_York", 
+                color: "blue",
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60,
+                email: "jane@example.com"
+            ),
+            Contact(
+                name: "John (London)",
+                timeZoneIdentifier: "Europe/London",
+                color: "green",
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60,
+                email: "john@example.com"
+            ),
+            Contact(
+                name: "Akira (Tokyo)",
+                timeZoneIdentifier: "Asia/Tokyo",
+                color: "red",
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60,
+                email: "akira@example.com"
+            )
         ]
     }
 }
 
-struct ContactsEntry: TimelineEntry {
-    let date: Date
-    let contacts: [Contact]
-}
-
-struct ContactsWidgetEntryView : View {
-    var entry: Provider.Entry
+struct ContactsWidgetEntryView: View {
+    var entry: SimpleEntry
     @Environment(\.widgetFamily) var family
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Family Time Zones")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.secondary)
-                .padding(.bottom, 2)
-            
-            ForEach(displayedContacts) { contact in
-                HStack {
-                    Circle()
-                        .fill(Color(contact.color))
-                        .frame(width: 8, height: 8)
-                    
-                    Text(contact.name)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                    
-                    Spacer()
-                    
-                    Text(contact.formattedTime())
-                        .font(.caption)
-                        .monospacedDigit()
-                }
-                .padding(.vertical, 2)
+        VStack(alignment: .leading, spacing: 2) {
+            // Show different number of contacts based on widget size
+            ForEach(getDisplayContacts()) { contact in
+                ContactTimeView(contact: contact, date: entry.date)
             }
         }
         .padding()
     }
     
-    var displayedContacts: [Contact] {
-        // Limit number of contacts based on widget size
+    private func getDisplayContacts() -> [Contact] {
+        // Show different number of contacts based on widget size
+        let maxToShow: Int
         switch family {
         case .systemSmall:
-            return Array(entry.contacts.prefix(3))
+            maxToShow = 2
         case .systemMedium:
-            return Array(entry.contacts.prefix(5))
+            maxToShow = 4
         case .systemLarge:
-            return entry.contacts
+            maxToShow = 8
         default:
-            return Array(entry.contacts.prefix(3))
+            maxToShow = 3
+        }
+        
+        return Array(entry.contacts.prefix(maxToShow))
+    }
+}
+
+struct ContactTimeView: View {
+    let contact: Contact
+    let date: Date
+    
+    var body: some View {
+        HStack {
+            Circle()
+                .fill(colorFromString(contact.color))
+                .frame(width: 10, height: 10)
+            
+            Text(contact.name)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+            
+            Spacer()
+            
+            VStack(alignment: .trailing) {
+                Text(formattedTime())
+                    .font(.system(size: 12, weight: .bold))
+                    .monospacedDigit()
+                
+                Text(contact.locationName())
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 3)
+    }
+    
+    private func formattedTime() -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = contact.timeZone
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    private func colorFromString(_ colorName: String) -> Color {
+        switch colorName.lowercased() {
+        case "blue": return .blue
+        case "green": return .green
+        case "red": return .red
+        case "purple": return .purple
+        case "orange": return .orange
+        case "pink": return .pink
+        case "yellow": return .yellow
+        case "gray", "grey": return .gray
+        default: return .blue
         }
     }
 }
 
 struct ContactsWidget: Widget {
     let kind: String = "ContactsWidget"
-
+    
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             ContactsWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Family Time Zones")
-        .description("Shows the current time for your family and friends around the world.")
+        .description("See the current time for your family and friends around the world")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -110,9 +184,30 @@ struct ContactsWidget: Widget {
 #Preview(as: .systemSmall) {
     ContactsWidget()
 } timeline: {
-    ContactsEntry(date: Date(), contacts: [
-        Contact(name: "Family (NY)", timeZoneIdentifier: "America/New_York", color: "blue"),
-        Contact(name: "Friend (Tokyo)", timeZoneIdentifier: "Asia/Tokyo", color: "green"),
-        Contact(name: "Work (London)", timeZoneIdentifier: "Europe/London", color: "orange")
+    SimpleEntry(date: Date(), contacts: [
+        Contact(
+            name: "Family (NY)",
+            timeZoneIdentifier: "America/New_York",
+            color: "blue",
+            availableStartTime: 8 * 60,
+            availableEndTime: 22 * 60,
+            email: "family@example.com"
+        ),
+        Contact(
+            name: "Friend (Tokyo)",
+            timeZoneIdentifier: "Asia/Tokyo",
+            color: "green",
+            availableStartTime: 8 * 60,
+            availableEndTime: 22 * 60,
+            email: "friend@example.com"
+        ),
+        Contact(
+            name: "Work (London)",
+            timeZoneIdentifier: "Europe/London",
+            color: "orange",
+            availableStartTime: 8 * 60,
+            availableEndTime: 22 * 60,
+            email: "work@example.com"
+        )
     ])
 } 
