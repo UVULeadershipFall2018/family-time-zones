@@ -60,25 +60,34 @@ struct Provider: TimelineProvider {
                 name: "Jane (New York)",
                 timeZoneIdentifier: "America/New_York", 
                 color: "blue",
+                useLocationTracking: false,
+                appleIdEmail: "jane@example.com",
+                lastLocationUpdate: nil,
+                hasAvailabilityWindow: true,
                 availableStartTime: 8 * 60,
-                availableEndTime: 22 * 60,
-                email: "jane@example.com"
+                availableEndTime: 22 * 60
             ),
             Contact(
                 name: "John (London)",
                 timeZoneIdentifier: "Europe/London",
                 color: "green",
+                useLocationTracking: false,
+                appleIdEmail: "john@example.com",
+                lastLocationUpdate: nil,
+                hasAvailabilityWindow: true,
                 availableStartTime: 8 * 60,
-                availableEndTime: 22 * 60,
-                email: "john@example.com"
+                availableEndTime: 22 * 60
             ),
             Contact(
                 name: "Akira (Tokyo)",
                 timeZoneIdentifier: "Asia/Tokyo",
                 color: "red",
+                useLocationTracking: false,
+                appleIdEmail: "akira@example.com",
+                lastLocationUpdate: nil,
+                hasAvailabilityWindow: true,
                 availableStartTime: 8 * 60,
-                availableEndTime: 22 * 60,
-                email: "akira@example.com"
+                availableEndTime: 22 * 60
             )
         ]
     }
@@ -189,25 +198,34 @@ struct ContactsWidget: Widget {
             name: "Family (NY)",
             timeZoneIdentifier: "America/New_York",
             color: "blue",
+            useLocationTracking: false,
+            appleIdEmail: "family@example.com",
+            lastLocationUpdate: nil,
+            hasAvailabilityWindow: true,
             availableStartTime: 8 * 60,
-            availableEndTime: 22 * 60,
-            email: "family@example.com"
+            availableEndTime: 22 * 60
         ),
         Contact(
             name: "Friend (Tokyo)",
             timeZoneIdentifier: "Asia/Tokyo",
             color: "green",
+            useLocationTracking: false,
+            appleIdEmail: "friend@example.com",
+            lastLocationUpdate: nil,
+            hasAvailabilityWindow: true,
             availableStartTime: 8 * 60,
-            availableEndTime: 22 * 60,
-            email: "friend@example.com"
+            availableEndTime: 22 * 60
         ),
         Contact(
             name: "Work (London)",
             timeZoneIdentifier: "Europe/London",
             color: "orange",
+            useLocationTracking: false,
+            appleIdEmail: "work@example.com",
+            lastLocationUpdate: nil,
+            hasAvailabilityWindow: true,
             availableStartTime: 8 * 60,
-            availableEndTime: 22 * 60,
-            email: "work@example.com"
+            availableEndTime: 22 * 60
         )
     ])
 } 
