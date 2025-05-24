@@ -1,40 +1,38 @@
 import Foundation
 
-struct Contact: Identifiable, Codable, Equatable {
-    var id = UUID().uuidString
+struct Contact: Identifiable, Codable, Hashable {
+    var id: String
     var name: String
     var timeZoneIdentifier: String
     var color: String
     var availableStartTime: Int // Minutes from midnight
     var availableEndTime: Int // Minutes from midnight
     var email: String
-    var useLocationForTimeZone: Bool = false
+    var useLocationForTimeZone: Bool
     var lastLocationUpdate: Date?
     
-    // For backward compatibility
+    // Computed properties for backward compatibility
     var useLocationTracking: Bool {
         get { return useLocationForTimeZone }
         set { useLocationForTimeZone = newValue }
     }
     
     var appleIdEmail: String? {
-        get { return email }
-        set { if let newEmail = newValue { email = newEmail } }
+        get { return email.isEmpty ? nil : email }
+        set { if let newValue = newValue { email = newValue } }
     }
     
     var hasAvailabilityWindow: Bool {
         get { return availableStartTime > 0 || availableEndTime < 24 * 60 }
+        set { /* Setter required for Codable, but implementation depends on start/end time */ }
     }
     
-    static func ==(lhs: Contact, rhs: Contact) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
+    // Time zone accessor
     var timeZone: TimeZone {
         return TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
     }
     
-    // Initialize with default values
+    // Default initializer with named parameters
     init(
         id: String = UUID().uuidString,
         name: String,
@@ -54,18 +52,25 @@ struct Contact: Identifiable, Codable, Equatable {
         self.useLocationForTimeZone = useLocationTracking
         self.email = appleIdEmail ?? ""
         self.lastLocationUpdate = lastLocationUpdate
-        self.availableStartTime = availableStartTime
-        self.availableEndTime = availableEndTime
+        
+        // Set availability based on hasAvailabilityWindow
+        if hasAvailabilityWindow {
+            self.availableStartTime = availableStartTime
+            self.availableEndTime = availableEndTime
+        } else {
+            self.availableStartTime = 0
+            self.availableEndTime = 24 * 60
+        }
     }
     
+    // Sample contact for previews
     static var example: Contact {
         return Contact(
             name: "John Doe",
             timeZoneIdentifier: "America/New_York",
             color: "blue",
             availableStartTime: 8 * 60, // 8 AM
-            availableEndTime: 22 * 60, // 10 PM
-            appleIdEmail: "john@example.com"
+            availableEndTime: 22 * 60  // 10 PM
         )
     }
     
@@ -134,7 +139,7 @@ struct Contact: Identifiable, Codable, Equatable {
     // Check if contact is available at given time
     func isAvailable(at date: Date = Date()) -> Bool {
         // If no availability window is set, the contact is always available
-        if availableStartTime == 0 && availableEndTime == 0 {
+        if availableStartTime == 0 && availableEndTime == 24 * 60 {
             return true
         }
         
@@ -149,7 +154,13 @@ struct Contact: Identifiable, Codable, Equatable {
         let currentMinutes = hour * 60 + minute
         
         // Check if current time is within the availability window
-        return currentMinutes >= availableStartTime && currentMinutes <= availableEndTime
+        if availableStartTime <= availableEndTime {
+            // Normal window within same day
+            return currentMinutes >= availableStartTime && currentMinutes <= availableEndTime
+        } else {
+            // Window spans midnight
+            return currentMinutes >= availableStartTime || currentMinutes <= availableEndTime
+        }
     }
     
     // Format availability times for display
@@ -174,4 +185,14 @@ struct Contact: Identifiable, Codable, Equatable {
         
         return "\(startStr) - \(endStr)"
     }
-} 
+    
+    // Hashable conformance
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    // Equatable implementation
+    static func ==(lhs: Contact, rhs: Contact) -> Bool {
+        return lhs.id == rhs.id
+    }
+}

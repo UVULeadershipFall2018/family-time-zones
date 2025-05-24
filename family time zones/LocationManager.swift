@@ -7,6 +7,8 @@ import ContactsUI
 import MapKit
 import MessageUI
 
+// Updated code to fix compiler errors - May 24, 2023
+
 // Define the FMNetworkDelegate protocol
 protocol FMNetworkDelegate: AnyObject {
     func network(_ network: FMNetwork, didUpdateItems items: [FMItem])
@@ -38,6 +40,20 @@ class FMItem {
         self.name = name
         self.ownerEmail = ownerEmail
         self.location = location
+    }
+}
+
+// Mock FindMyContact struct for displaying in the UI
+struct FindMyContact: Identifiable {
+    let id: String
+    let name: String
+    let email: String
+    let lastLocation: CLLocation?
+    var timeZone: TimeZone? {
+        if let location = lastLocation {
+            return LocationManager.lookupTimeZone(for: location)
+        }
+        return nil
     }
 }
 
@@ -80,6 +96,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     @Published var permissionStatus: CLAuthorizationStatus = .notDetermined
     @Published var locationSharedContacts: [SharedLocationContact] = []
     @Published var isLocationServicesEnabled: Bool = false
+    @Published var findMyContacts: [FindMyContact] = []
     
     private let locationManager = CLLocationManager()
     private var locationInvitations: [LocationSharingInvitation] = []
@@ -128,20 +145,30 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     
     // Check if location services are enabled and authorized
     func checkLocationServicesStatus() {
-        // First check if location services are enabled at the device level
-        if CLLocationManager.locationServicesEnabled() {
-            isLocationServicesEnabled = true
+        // Perform authorization check on a background thread
+        DispatchQueue.global().async { [weak self] in
+            guard let self = self else { return }
             
-            // Then check the authorization status for this app
-            permissionStatus = locationManager.authorizationStatus
-            
-            // If already authorized, start location updates
-            if permissionStatus == .authorizedWhenInUse || permissionStatus == .authorizedAlways {
-                startLocationUpdates()
+            // First check if location services are enabled at the device level
+            if CLLocationManager.locationServicesEnabled() {
+                DispatchQueue.main.async {
+                    self.isLocationServicesEnabled = true
+                    
+                    // Then check the authorization status for this app
+                    let status = self.locationManager.authorizationStatus
+                    self.permissionStatus = status
+                    
+                    // If already authorized, start location updates
+                    if status == .authorizedWhenInUse || status == .authorizedAlways {
+                        self.startLocationUpdates()
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.isLocationServicesEnabled = false
+                    self.errorMessage = "Location services are disabled on this device. Please enable them in Settings."
+                }
             }
-        } else {
-            isLocationServicesEnabled = false
-            errorMessage = "Location services are disabled on this device. Please enable them in Settings."
         }
     }
     
@@ -336,23 +363,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
             return
         }
         
-        // First try the CLLocation built-in time zone
-        if #available(iOS 15.0, *) {
-            Task {
-                do {
-                    let timeZone = try await currentLocation.fetchTimeZone()
-                    DispatchQueue.main.async {
-                        completion(timeZone.identifier)
-                    }
-                } catch {
-                    print("Error fetching time zone: \(error.localizedDescription)")
-                    self.fallbackTimeZoneLookup(for: currentLocation, completion: completion)
-                }
-            }
-        } else {
-            // Fallback for iOS 14 and earlier
-            fallbackTimeZoneLookup(for: currentLocation, completion: completion)
-        }
+        // Use geocoder fallback since fetchTimeZone is not available
+        fallbackTimeZoneLookup(for: currentLocation, completion: completion)
     }
     
     private func fallbackTimeZoneLookup(for location: CLLocation, completion: @escaping (String?) -> Void) {
@@ -376,23 +388,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     }
     
     func lookupTimeZoneFromLocation(_ location: CLLocation, completion: @escaping (String?) -> Void) {
-        // First try the CLLocation built-in time zone
-        if #available(iOS 15.0, *) {
-            Task {
-                do {
-                    let timeZone = try await location.fetchTimeZone()
-                    DispatchQueue.main.async {
-                        completion(timeZone.identifier)
-                    }
-                } catch {
-                    print("Error fetching time zone: \(error.localizedDescription)")
-                    self.fallbackTimeZoneLookup(for: location, completion: completion)
-                }
-            }
-        } else {
-            // Fallback for iOS 14 and earlier
-            fallbackTimeZoneLookup(for: location, completion: completion)
-        }
+        // Use geocoder fallback since fetchTimeZone is not available
+        fallbackTimeZoneLookup(for: location, completion: completion)
     }
     
     // MARK: - Location Sharing Invitations

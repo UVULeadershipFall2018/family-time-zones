@@ -1,6 +1,84 @@
 import WidgetKit
 import SwiftUI
 
+// Define the entry type for the lock screen widget
+struct LockScreenEntry: TimelineEntry {
+    let date: Date
+    let contacts: [Contact]
+}
+
+// Define the provider for the lock screen widget
+struct ContactsProvider: TimelineProvider {
+    func placeholder(in context: Context) -> LockScreenEntry {
+        LockScreenEntry(date: Date(), contacts: loadSampleContacts())
+    }
+    
+    func getSnapshot(in context: Context, completion: @escaping (LockScreenEntry) -> Void) {
+        let entry = LockScreenEntry(date: Date(), contacts: loadContacts())
+        completion(entry)
+    }
+    
+    func getTimeline(in context: Context, completion: @escaping (Timeline<LockScreenEntry>) -> Void) {
+        let contacts = loadContacts()
+        var entries: [LockScreenEntry] = []
+        
+        // Create a timeline that refreshes every 15 minutes
+        let currentDate = Date()
+        let calendar = Calendar.current
+        
+        for minuteOffset in stride(from: 0, to: 24 * 60, by: 15) {
+            let entryDate = calendar.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
+            let entry = LockScreenEntry(date: entryDate, contacts: contacts)
+            entries.append(entry)
+        }
+        
+        let timeline = Timeline(entries: entries, policy: .atEnd)
+        completion(timeline)
+    }
+    
+    private func loadContacts() -> [Contact] {
+        return SharedStorage.loadContacts()
+    }
+    
+    private func loadSampleContacts() -> [Contact] {
+        return [
+            Contact(
+                name: "Jane (New York)",
+                timeZoneIdentifier: "America/New_York", 
+                color: "blue",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            ),
+            Contact(
+                name: "John (London)",
+                timeZoneIdentifier: "Europe/London",
+                color: "green",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            ),
+            Contact(
+                name: "Akira (Tokyo)",
+                timeZoneIdentifier: "Asia/Tokyo",
+                color: "red",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            )
+        ]
+    }
+}
+
 // Lock screen version with simpler UI for lock screen
 struct ContactsLockScreenWidget: Widget {
     let kind: String = "ContactsLockScreenWidget"
@@ -16,7 +94,7 @@ struct ContactsLockScreenWidget: Widget {
 }
 
 struct ContactsLockScreenView: View {
-    var entry: ContactsProvider.Entry
+    var entry: LockScreenEntry
     @Environment(\.widgetFamily) var family
     
     var body: some View {
@@ -110,4 +188,35 @@ struct ContactsLockScreenView: View {
         default: return .blue
         }
     }
+}
+
+#Preview {
+    ContactsLockScreenView(entry: LockScreenEntry(
+        date: Date(),
+        contacts: [
+            Contact(
+                name: "Jane (New York)",
+                timeZoneIdentifier: "America/New_York", 
+                color: "blue",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            ),
+            Contact(
+                name: "John (London)",
+                timeZoneIdentifier: "Europe/London",
+                color: "green",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            )
+        ]
+    ))
+    .previewContext(WidgetPreviewContext(family: .accessoryRectangular))
 } 

@@ -7,6 +7,8 @@
 
 import SwiftUI
 import WidgetKit
+import Contacts
+import ContactsUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
@@ -26,6 +28,7 @@ struct ContentView: View {
     @State private var showLocationSharingSheet = false
     @State private var showEditSheet = false
     @State private var messageConfirmationText = ""
+    @State private var showingMessageConfirmation = false
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
@@ -197,156 +200,205 @@ struct ContentView: View {
                 }
                 
                 contactListView
-                    .navigationTitle("Family Time Zones")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button {
-                                prepareForAdding()
-                            } label: {
-                                Label("Add Contact", systemImage: "plus")
-                            }
-                        }
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            EditButton()
-                        }
-                    }
-                    .sheet(isPresented: $showingAddContact) {
-                        contactFormView
-                    }
             }
-        }
-        .sheet(isPresented: $showEditSheet) {
-            ContactEditView(contact: $editingContact, isNewContact: editingContact.id.isEmpty, viewModel: viewModel, onSave: saveContact, onDelete: deleteContact)
-        }
-        .sheet(isPresented: $showLocationSharingSheet) {
-            LocationSharingInvitationView(locationManager: viewModel.locationManager)
-        }
-        .alert(isPresented: $showingMessageConfirmation) {
-            Alert(
-                title: Text("Send Message"),
-                message: Text(messageConfirmationText),
-                primaryButton: .default(Text("Send")) {
-                    sendMessageToContact()
-                },
-                secondaryButton: .cancel()
-            )
+            .navigationTitle("Family Time Zones")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        prepareForAdding()
+                    } label: {
+                        Label("Add Contact", systemImage: "plus")
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EditButton()
+                }
+            }
+            .sheet(isPresented: $showingAddContact) {
+                contactFormView
+            }
+            .sheet(isPresented: $showEditSheet) {
+                ContactEditView(
+                    viewModel: viewModel,
+                    isShowing: $showEditSheet,
+                    isEditing: $isEditingContact,
+                    editingIndex: $editingContactIndex,
+                    name: $newContactName,
+                    timeZoneIdentifier: $newContactTimeZone,
+                    color: $newContactColor,
+                    useLocationTracking: $useLocationTracking,
+                    selectedAppleIdEmail: $selectedAppleIdEmail,
+                    hasAvailabilityWindow: $hasAvailabilityWindow,
+                    availableStartTime: $availableStartTime,
+                    availableEndTime: $availableEndTime,
+                    searchText: $searchText
+                )
+            }
+            .sheet(isPresented: $showLocationSharingSheet) {
+                LocationSharingInvitationView(
+                    viewModel: viewModel,
+                    confirmationMessage: $messageConfirmationText
+                )
+            }
+            .alert(isPresented: $showingMessageConfirmation) {
+                Alert(
+                    title: Text("Send Message"),
+                    message: Text(messageConfirmationText),
+                    primaryButton: .default(Text("Send")) {
+                        if let index = editingContactIndex, index < viewModel.contacts.count {
+                            let contact = viewModel.contacts[index]
+                            sendMessageToContact(contact)
+                        }
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
         }
     }
     
     private var contactListView: some View {
-        List {
+        Section(header: Text("Contacts")) {
             ForEach(viewModel.contacts) { contact in
                 ContactRow(contact: contact)
-                    .contentShape(Rectangle())
+                    .contextMenu {
+                        Button(action: {
+                            if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
+                                prepareForEditing(contactIndex: index)
+                                showEditSheet = true
+                            }
+                        }) {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        
+                        Button(action: {
+                            if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
+                                viewModel.contacts.remove(at: index)
+                                viewModel.saveContacts()
+                            }
+                        }) {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                     .onTapGesture {
                         if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
                             prepareForEditing(contactIndex: index)
+                            showEditSheet = true
                         }
                     }
             }
-            .onDelete(perform: viewModel.removeContact)
-            .onMove(perform: viewModel.moveContact)
+            .onDelete(perform: deleteContact)
+            
+            Button(action: {
+                prepareForAdding()
+                showEditSheet = true
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add New Contact")
+                }
+            }
         }
     }
     
     private var contactFormView: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Name")) {
-                    TextField("Contact Name", text: $newContactName)
-                }
-                
-                Section(header: Text("Color")) {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 10) {
-                        ForEach(availableColors, id: \.self) { color in
-                            colorCircleView(for: color)
-                        }
+        Form {
+            Section(header: Text("Name")) {
+                TextField("Contact Name", text: $newContactName)
+            }
+            
+            Section(header: Text("Color")) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 10) {
+                    ForEach(availableColors, id: \.self) { color in
+                        colorCircleView(for: color)
                     }
-                    .padding(.vertical, 5)
                 }
+                .padding(.vertical, 5)
+            }
+            
+            Section(header: Text("Location Tracking")) {
+                Toggle("Use Location for Time Zone", isOn: $useLocationTracking)
                 
-                Section(header: Text("Location Tracking")) {
-                    Toggle("Use Location for Time Zone", isOn: $useLocationTracking)
+                if useLocationTracking {
+                    Text("Select the person who shares their location with you:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     
-                    if useLocationTracking {
-                        Text("Select the person who shares their location with you:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        FindMyContactPicker(viewModel: viewModel, selectedEmail: $selectedAppleIdEmail)
-                    }
+                    FindMyContactPicker(viewModel: viewModel, selectedEmail: $selectedAppleIdEmail)
                 }
+            }
+            
+            Section(header: Text("Availability Window")) {
+                Toggle("Set Availability Hours", isOn: $hasAvailabilityWindow)
                 
-                Section(header: Text("Availability Window")) {
-                    Toggle("Set Availability Hours", isOn: $hasAvailabilityWindow)
+                if hasAvailabilityWindow {
+                    HStack {
+                        Text("Start Time")
+                        Spacer()
+                        TimePicker(minutes: $availableStartTime)
+                    }
                     
-                    if hasAvailabilityWindow {
-                        HStack {
-                            Text("Start Time")
-                            Spacer()
-                            TimePicker(minutes: $availableStartTime)
-                        }
-                        
-                        HStack {
-                            Text("End Time")
-                            Spacer()
-                            TimePicker(minutes: $availableEndTime)
-                        }
-                        
-                        Text("Contact's local time (\(formatTimeZoneForDisplay(newContactTimeZone)))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        let isCurrentlyAvailable = checkAvailability()
-                        HStack {
-                            Text("Current Status:")
-                            Text(isCurrentlyAvailable ? "Available" : "Unavailable")
-                                .foregroundColor(isCurrentlyAvailable ? .green : .red)
-                                .fontWeight(.bold)
-                        }
+                    HStack {
+                        Text("End Time")
+                        Spacer()
+                        TimePicker(minutes: $availableEndTime)
                     }
-                }
-                
-                Section(header: Text("Time Zone")) {
-                    if !useLocationTracking {
-                        TextField("Search Time Zones", text: $searchText)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                        
-                        timeZoneListView
-                    } else if let email = selectedAppleIdEmail, 
-                              let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == email }),
-                              let timeZone = contact.timeZone {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(formatTimeZoneForDisplay(timeZone.identifier))
-                                    .fontWeight(.bold)
-                                Text("Automatically set based on location")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "location.fill")
-                                .foregroundColor(.blue)
-                        }
-                    } else if useLocationTracking {
-                        Text("Select a contact who shares their location with you")
-                            .foregroundColor(.secondary)
+                    
+                    Text("Contact's local time (\(formatTimeZoneForDisplay(newContactTimeZone)))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    let isCurrentlyAvailable = checkAvailability()
+                    HStack {
+                        Text("Current Status:")
+                        Text(isCurrentlyAvailable ? "Available" : "Unavailable")
+                            .foregroundColor(isCurrentlyAvailable ? .green : .red)
+                            .fontWeight(.bold)
                     }
                 }
             }
-            .navigationTitle(isEditingContact ? "Edit Contact" : "Add New Contact")
-            .navigationBarItems(
-                leading: Button("Cancel") {
+            
+            Section(header: Text("Time Zone")) {
+                if !useLocationTracking {
+                    TextField("Search Time Zones", text: $searchText)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    
+                    timeZoneListView
+                } else if let email = selectedAppleIdEmail, 
+                          let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == email }),
+                          let timeZone = contact.timeZone {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(formatTimeZoneForDisplay(timeZone.identifier))
+                                .fontWeight(.bold)
+                            Text("Automatically set based on location")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "location.fill")
+                            .foregroundColor(.blue)
+                    }
+                } else if useLocationTracking {
+                    Text("Select a contact who shares their location with you")
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Section {
+                Button("Cancel") {
                     showingAddContact = false
                     resetForm()
-                },
-                trailing: Button(isEditingContact ? "Save" : "Add") {
+                }
+                .foregroundColor(.red)
+                
+                Button(isEditingContact ? "Save Changes" : "Add Contact") {
                     saveContactAction()
                 }
                 .disabled(newContactName.isEmpty || (useLocationTracking && selectedAppleIdEmail == nil))
-            )
+            }
         }
+        .navigationTitle(isEditingContact ? "Edit Contact" : "Add New Contact")
     }
     
     private var timeZoneListView: some View {
@@ -532,8 +584,8 @@ struct ContentView: View {
             name: newContactName,
             timeZoneIdentifier: newContactTimeZone,
             color: newContactColor,
-            useLocationTracking: false,
-            appleIdEmail: nil as String?,
+            useLocationTracking: useLocationTracking,
+            appleIdEmail: selectedAppleIdEmail,
             lastLocationUpdate: nil as Date?,
             hasAvailabilityWindow: hasAvailabilityWindow,
             availableStartTime: availableStartTime,
@@ -548,6 +600,47 @@ struct ContentView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    
+    func sendMessageToContact(_ contact: Contact) {
+        // Check if contact is available
+        if contact.hasAvailabilityWindow && !contact.isAvailable() {
+            // Show confirmation dialog
+            showingMessageConfirmation = true
+            messageConfirmationText = "\(contact.name) is outside their usual availability hours. Would you still like to send a message?"
+        } else {
+            // Directly proceed to messaging
+            // This would normally open a messaging interface
+            print("Sending message to \(contact.name)")
+        }
+    }
+    
+    func deleteContact(at offsets: IndexSet) {
+        viewModel.removeContact(at: offsets)
+    }
+    
+    // Additional method to handle showing edit view
+    func editingContact(_ contact: Contact) {
+        if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
+            prepareForEditing(contactIndex: index)
+            showEditSheet = true
+        }
+    }
+    
+    // Method to delete a specific contact
+    func deleteContact(contact: Contact) {
+        if let index = viewModel.contacts.firstIndex(where: { $0.id == contact.id }) {
+            viewModel.contacts.remove(at: index)
+            viewModel.saveContacts()
+            
+            // Force widget refresh
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+    
+    // Method to handle location sharing for a contact
+    func showLocationSharingInvitationView() {
+        showLocationSharingSheet = true
     }
 }
 
@@ -766,7 +859,7 @@ struct TimePicker: View {
             .pickerStyle(WheelPickerStyle())
             .frame(width: 60)
             .clipped()
-            .onChange(of: hourValue) { newValue in
+            .onChange(of: hourValue) { oldValue, newValue in
                 minutes = (newValue * 60) + minuteValue
             }
             
@@ -781,13 +874,417 @@ struct TimePicker: View {
             .pickerStyle(WheelPickerStyle())
             .frame(width: 60)
             .clipped()
-            .onChange(of: minuteValue) { newValue in
+            .onChange(of: minuteValue) { oldValue, newValue in
                 minutes = (hourValue * 60) + newValue
             }
         }
     }
 }
 
+// Add ContactEditView after ContentView
+struct ContactEditView: View {
+    @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var viewModel: ContactViewModel
+    @Binding var isShowing: Bool
+    @Binding var isEditing: Bool
+    @Binding var editingIndex: Int?
+    
+    // Contact properties
+    @Binding var name: String
+    @Binding var timeZoneIdentifier: String
+    @Binding var color: String
+    @Binding var useLocationTracking: Bool
+    @Binding var selectedAppleIdEmail: String?
+    @Binding var hasAvailabilityWindow: Bool
+    @Binding var availableStartTime: Int
+    @Binding var availableEndTime: Int
+    @Binding var searchText: String
+    
+    let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Contact Info")) {
+                    TextField("Name", text: $name)
+                    
+                    if !useLocationTracking {
+                        ZStack {
+                            NavigationLink(destination: TimeZoneSelectionView(
+                                selectedTimeZone: $timeZoneIdentifier,
+                                searchText: $searchText,
+                                viewModel: viewModel
+                            )) {
+                                HStack {
+                                    Text("Time Zone")
+                                    Spacer()
+                                    Text(formatTimeZoneForDisplay(timeZoneIdentifier))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Section(header: Text("Location Tracking")) {
+                    Toggle("Use Location Tracking", isOn: $useLocationTracking)
+                    
+                    if useLocationTracking {
+                        Picker("Select Contact", selection: $selectedAppleIdEmail) {
+                            Text("None").tag(nil as String?)
+                            ForEach(viewModel.locationManager.locationSharedContacts, id: \.id) { contact in
+                                Text(contact.name).tag(contact.email as String?)
+                            }
+                        }
+                        
+                        if selectedAppleIdEmail != nil {
+                            if let contact = viewModel.locationManager.locationSharedContacts.first(where: { $0.email == selectedAppleIdEmail }),
+                               let timeZone = contact.timeZone {
+                                HStack {
+                                    Text("Time Zone:")
+                                    Spacer()
+                                    Text(formatTimeZoneForDisplay(timeZone.identifier))
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Text("No location data available")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                
+                Section(header: Text("Availability Window")) {
+                    Toggle("Set Availability Window", isOn: $hasAvailabilityWindow)
+                    
+                    if hasAvailabilityWindow {
+                        HStack {
+                            Text("Start Time")
+                            Spacer()
+                            TimePicker(minutes: $availableStartTime)
+                        }
+                        
+                        HStack {
+                            Text("End Time")
+                            Spacer()
+                            TimePicker(minutes: $availableEndTime)
+                        }
+                        
+                        HStack {
+                            Text("Status:")
+                            Spacer()
+                            if checkAvailability() {
+                                Text("Currently Available")
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("Currently Unavailable")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                }
+                
+                Section(header: Text("Color")) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(availableColors, id: \.self) { colorName in
+                                colorCircleView(for: colorName)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 5)
+                }
+            }
+            .navigationBarTitle(isEditing ? "Edit Contact" : "Add Contact", displayMode: .inline)
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    isShowing = false
+                },
+                trailing: Button(isEditing ? "Save" : "Add") {
+                    saveContactAction()
+                }
+                .disabled(name.isEmpty)
+            )
+        }
+    }
+    
+    private func colorCircleView(for color: String) -> some View {
+        Circle()
+            .fill(colorFromString(color))
+            .frame(width: 40, height: 40)
+            .overlay(
+                Circle()
+                    .stroke(Color.primary, lineWidth: self.color == color ? 2 : 0)
+            )
+            .padding(5)
+            .onTapGesture {
+                self.color = color
+            }
+    }
+    
+    // Helper function to convert string to Color
+    private func colorFromString(_ colorName: String) -> Color {
+        switch colorName.lowercased() {
+        case "blue": return .blue
+        case "green": return .green
+        case "red": return .red
+        case "purple": return .purple
+        case "orange": return .orange
+        case "pink": return .pink
+        case "yellow": return .yellow
+        case "gray", "grey": return .gray
+        default: return .blue
+        }
+    }
+    
+    private func formatTimeZoneForDisplay(_ identifier: String) -> String {
+        guard let timeZone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "z"
+        let abbreviation = formatter.string(from: Date())
+        
+        let offset = timeZone.secondsFromGMT() / 3600
+        let offsetString = offset >= 0 ? "GMT+\(offset)" : "GMT\(offset)"
+        
+        return "\(identifier.replacingOccurrences(of: "_", with: " ")) (\(offsetString), \(abbreviation))"
+    }
+    
+    private func saveContactAction() {
+        // Call the saveContactAction from ContentView
+        if isEditing, let index = editingIndex {
+            // Update the existing contact
+            var updatedContact = viewModel.contacts[index]
+            updatedContact.name = name
+            updatedContact.timeZoneIdentifier = timeZoneIdentifier
+            updatedContact.color = color
+            updatedContact.useLocationTracking = useLocationTracking
+            updatedContact.appleIdEmail = selectedAppleIdEmail
+            // Handle availability window
+            updatedContact.availableStartTime = hasAvailabilityWindow ? availableStartTime : 0
+            updatedContact.availableEndTime = hasAvailabilityWindow ? availableEndTime : 24 * 60
+            
+            viewModel.contacts[index] = updatedContact
+            viewModel.saveContacts()
+        } else {
+            // Add new contact
+            let newContact = Contact(
+                name: name,
+                timeZoneIdentifier: timeZoneIdentifier,
+                color: color,
+                useLocationTracking: useLocationTracking,
+                appleIdEmail: selectedAppleIdEmail,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: hasAvailabilityWindow,
+                availableStartTime: hasAvailabilityWindow ? availableStartTime : 0,
+                availableEndTime: hasAvailabilityWindow ? availableEndTime : 24 * 60
+            )
+            viewModel.contacts.append(newContact)
+            viewModel.saveContacts()
+        }
+        
+        // Force widget refresh
+        WidgetCenter.shared.reloadAllTimelines()
+        
+        isShowing = false
+    }
+    
+    private func checkAvailability() -> Bool {
+        // Create a temporary contact with the current form values to check availability
+        let tempContact = Contact(
+            name: name,
+            timeZoneIdentifier: timeZoneIdentifier,
+            color: color,
+            useLocationTracking: useLocationTracking,
+            appleIdEmail: selectedAppleIdEmail,
+            lastLocationUpdate: nil as Date?,
+            hasAvailabilityWindow: hasAvailabilityWindow,
+            availableStartTime: availableStartTime,
+            availableEndTime: availableEndTime
+        )
+        
+        return tempContact.isAvailable()
+    }
+}
+
+// Add TimeZoneSelectionView
+struct TimeZoneSelectionView: View {
+    @Binding var selectedTimeZone: String
+    @Binding var searchText: String
+    @ObservedObject var viewModel: ContactViewModel
+    @Environment(\.presentationMode) var presentationMode
+    
+    var filteredTimeZones: [String] {
+        return TimeZone.knownTimeZoneIdentifiers.filter { identifier in
+            searchText.isEmpty || identifier.localizedCaseInsensitiveContains(searchText)
+        }.sorted()
+    }
+    
+    var body: some View {
+        VStack {
+            TextField("Search Time Zones", text: $searchText)
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(10)
+                .padding(.horizontal)
+            
+            List {
+                ForEach(filteredTimeZones, id: \.self) { timeZone in
+                    Button(action: {
+                        selectedTimeZone = timeZone
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        HStack {
+                            Text(formatTimeZoneForDisplay(timeZone))
+                            Spacer()
+                            if selectedTimeZone == timeZone {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                    .foregroundColor(.primary)
+                }
+            }
+        }
+        .navigationBarTitle("Select Time Zone", displayMode: .inline)
+    }
+    
+    private func formatTimeZoneForDisplay(_ identifier: String) -> String {
+        guard let timeZone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "z"
+        let abbreviation = formatter.string(from: Date())
+        
+        let offset = timeZone.secondsFromGMT() / 3600
+        let offsetString = offset >= 0 ? "GMT+\(offset)" : "GMT\(offset)"
+        
+        return "\(identifier.replacingOccurrences(of: "_", with: " ")) (\(offsetString), \(abbreviation))"
+    }
+}
+
+// Add LocationSharingInvitationView
+struct LocationSharingInvitationView: View {
+    @ObservedObject var viewModel: ContactViewModel
+    @Environment(\.presentationMode) var presentationMode
+    @State private var showingContactPicker = false
+    @Binding var confirmationMessage: String
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: Text("Your Invitations")) {
+                    ForEach(viewModel.locationManager.getAcceptedInvitations()) { invitation in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(invitation.contactName)
+                                    .font(.headline)
+                                Text(invitation.contactEmail)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if invitation.invitationStatus == .accepted {
+                                Text("Connected")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            } else if invitation.invitationStatus == .pending {
+                                Text("Pending")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    
+                    if viewModel.locationManager.getAcceptedInvitations().isEmpty {
+                        Text("No active location sharing connections")
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                    
+                    Button(action: {
+                        showingContactPicker = true
+                    }) {
+                        Label("Invite a Contact", systemImage: "person.badge.plus")
+                    }
+                }
+                
+                Section(header: Text("Privacy Information")) {
+                    Text("Location sharing helps contacts see your accurate local time. Your location is only shared with people you specifically invite.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text("To stop sharing with a contact, swipe left on their name and tap 'Remove'.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .navigationBarTitle("Location Sharing", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Done") {
+                presentationMode.wrappedValue.dismiss()
+            })
+            .sheet(isPresented: $showingContactPicker) {
+                ContactPickerWrapper(viewModel: viewModel, showingMessageConfirmation: $showingMessageConfirmation, confirmationMessage: $confirmationMessage)
+            }
+            .alert(isPresented: $showingMessageConfirmation) {
+                Alert(
+                    title: Text("Invitation Sent"),
+                    message: Text(confirmationMessage),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+        }
+    }
+    
+    // Add a showingMessageConfirmation state
+    @State private var showingMessageConfirmation = false
+}
+
+// Add ContactPickerWrapper without using CNContactPickerViewController
+struct ContactPickerWrapper: View {
+    var viewModel: ContactViewModel
+    @Binding var showingMessageConfirmation: Bool
+    @Binding var confirmationMessage: String
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: Text("Select a Contact")) {
+                    Text("Please select a contact to share location with")
+                        .foregroundColor(.secondary)
+                    
+                    Button("Select from Contacts") {
+                        // Mock selecting a contact
+                        mockContactSelection()
+                    }
+                }
+            }
+            .navigationTitle("Select Contact")
+            .navigationBarItems(trailing: Button("Cancel") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
+    }
+    
+    private func mockContactSelection() {
+        // Mock a contact selection
+        confirmationMessage = "Location sharing invitation sent to John Doe."
+        showingMessageConfirmation = true
+        presentationMode.wrappedValue.dismiss()
+    }
+}
+
 #Preview {
     ContentView()
 } 
+

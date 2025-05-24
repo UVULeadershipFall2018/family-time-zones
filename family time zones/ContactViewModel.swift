@@ -4,6 +4,8 @@ import Combine
 import WidgetKit
 import CoreLocation
 
+// Updated ContactViewModel with proper closure parameter types - May 24, 2023
+
 class ContactViewModel: ObservableObject {
     @Published var contacts: [Contact] = []
     @Published var locationManager = LocationManager()
@@ -94,14 +96,14 @@ class ContactViewModel: ObservableObject {
         
         // Listen for changes in FindMy contacts
         locationManager.$findMyContacts
-            .sink { [weak self] _ in
+            .sink { [weak self] (contacts: [FindMyContact]) in
                 self?.refreshLocationBasedTimeZones()
             }
             .store(in: &cancellables)
         
         // Listen for changes in user's location
         locationManager.$currentLocation
-            .sink { [weak self] _ in
+            .sink { [weak self] (location: CLLocation?) in
                 if self?.useMyLocationForTimeZone == true {
                     self?.updateUserTimeZone()
                 }
@@ -209,7 +211,7 @@ class ContactViewModel: ObservableObject {
     }
     
     // Get FindMy contacts that could be used for location tracking
-    func availableFindMyContacts() -> [LocationManager.FindMyContact] {
+    func availableFindMyContacts() -> [FindMyContact] {
         return locationManager.findMyContacts
     }
     
@@ -218,7 +220,7 @@ class ContactViewModel: ObservableObject {
         locationUpdateTimer?.invalidate()
         
         // Set up a new timer to update the time zone every 5 minutes
-        locationUpdateTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+        locationUpdateTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] (timer: Timer) in
             self?.updateUserTimeZone()
         }
         
@@ -228,7 +230,9 @@ class ContactViewModel: ObservableObject {
     
     private func setupFindMyListener() {
         // Set up as delegate for the FMNetwork
-        locationManager.findMyManager?.delegate = self
+        if let findMyManager = locationManager.findMyManager {
+            findMyManager.delegate = locationManager
+        }
         
         // Load initial shared location contacts
         loadSharedLocationContacts()
@@ -247,15 +251,27 @@ class ContactViewModel: ObservableObject {
                 if let timeZone = sharedContact.timeZone?.identifier {
                     // Update existing contact with location-based time zone
                     var updatedContact = contacts[index]
-                    updatedContact.timeZone = timeZone
-                    updatedContact.useLocationForTimeZone = true
+                    updatedContact.timeZoneIdentifier = timeZone
                     updatedContact.lastLocationUpdate = sharedContact.lastUpdated
                     contacts[index] = updatedContact
+                }
+            } else {
+                // Create a new contact from the shared location contact
+                if let timeZone = sharedContact.timeZone?.identifier {
+                    let newContact = Contact(
+                        name: sharedContact.name,
+                        timeZoneIdentifier: timeZone,
+                        color: "blue", // Default color
+                        useLocationTracking: true,
+                        appleIdEmail: sharedContact.email,
+                        lastLocationUpdate: sharedContact.lastUpdated
+                    )
+                    contacts.append(newContact)
                 }
             }
         }
         
-        // Save any updates
+        // Save changes
         saveContacts()
     }
     
@@ -303,7 +319,7 @@ extension ContactViewModel: FMNetworkDelegate {
                         
                         DispatchQueue.main.async {
                             // Update the contact's time zone
-                            updatedContact.timeZone = timeZoneId
+                            updatedContact.timeZoneIdentifier = timeZoneId
                             self.contacts[index] = updatedContact
                             self.saveContacts()
                         }

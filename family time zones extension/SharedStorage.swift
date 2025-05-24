@@ -1,60 +1,70 @@
 import Foundation
 import WidgetKit
 
-struct SharedStorage {
-    static let saveKey = "savedContacts"
-    static let appGroupIdentifier = "group.com.tjandtroy.FamilyTimezoneApp"
+class SharedStorage {
+    private static let userDefaultsKey = "savedContacts"
+    private static let userDefaultsGroup = "group.com.familytimezones.app"
     
     static func saveContacts(_ contacts: [Contact]) {
-        if let encoded = try? JSONEncoder().encode(contacts) {
-            // Save to both standard UserDefaults and shared container
-            UserDefaults.standard.set(encoded, forKey: saveKey)
+        let encoder = JSONEncoder()
+        if let encoded = try? encoder.encode(contacts) {
+            let defaults = UserDefaults(suiteName: userDefaultsGroup)
+            defaults?.set(encoded, forKey: userDefaultsKey)
+            defaults?.synchronize()
             
-            // Save to shared container for widget access
-            if let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) {
-                sharedDefaults.set(encoded, forKey: saveKey)
-                print("Widget: Data saved to shared container: \(contacts.count) contacts")
-            } else {
-                print("Widget: Failed to access shared UserDefaults with App Group: \(appGroupIdentifier)")
-            }
-            
-            // Force widget refresh
+            // Reload widget timelines when contacts are updated
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
     
     static func loadContacts() -> [Contact] {
-        // First try to load from shared container
-        if let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier),
-           let savedContacts = sharedDefaults.data(forKey: saveKey) {
-            do {
-                let decodedContacts = try JSONDecoder().decode([Contact].self, from: savedContacts)
-                print("Widget: Loaded \(decodedContacts.count) contacts from shared container")
-                return decodedContacts
-            } catch {
-                print("Widget: Error decoding data from shared container: \(error)")
-            }
-        } else {
-            print("Widget: No data found in shared container or could not access App Group")
-        }
-        
-        // Fall back to standard UserDefaults
-        if let savedContacts = UserDefaults.standard.data(forKey: saveKey) {
-            do {
-                let decodedContacts = try JSONDecoder().decode([Contact].self, from: savedContacts)
-                print("Widget: Loaded \(decodedContacts.count) contacts from standard UserDefaults")
-                return decodedContacts
-            } catch {
-                print("Widget: Error decoding data from standard UserDefaults: \(error)")
+        let defaults = UserDefaults(suiteName: userDefaultsGroup)
+        if let savedData = defaults?.data(forKey: userDefaultsKey) {
+            let decoder = JSONDecoder()
+            if let savedContacts = try? decoder.decode([Contact].self, from: savedData) {
+                return savedContacts
             }
         }
         
-        // Return sample data if nothing found
-        print("Widget: No saved contacts found, using sample data")
+        // Return sample contacts if no saved data
+        return createSampleContacts()
+    }
+    
+    static func createSampleContacts() -> [Contact] {
         return [
-            Contact(name: "Family (New York)", timeZoneIdentifier: "America/New_York", color: "blue"),
-            Contact(name: "Friend (Tokyo)", timeZoneIdentifier: "Asia/Tokyo", color: "green"),
-            Contact(name: "Work (London)", timeZoneIdentifier: "Europe/London", color: "orange")
+            Contact(
+                name: "Jane (New York)",
+                timeZoneIdentifier: "America/New_York",
+                color: "blue",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            ),
+            Contact(
+                name: "John (London)",
+                timeZoneIdentifier: "Europe/London",
+                color: "green",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            ),
+            Contact(
+                name: "Akira (Tokyo)",
+                timeZoneIdentifier: "Asia/Tokyo",
+                color: "red",
+                useLocationTracking: false,
+                appleIdEmail: nil as String?,
+                lastLocationUpdate: nil as Date?,
+                hasAvailabilityWindow: true,
+                availableStartTime: 8 * 60,
+                availableEndTime: 22 * 60
+            )
         ]
     }
 } 
