@@ -596,12 +596,25 @@ struct ContentView: View {
     }
     
     private func prepareForAdding() {
-        isEditingContact = false
-        editingContactIndex = nil
-        state.resetForm()
-        
-        // Start with contact picker immediately instead of showing form first
-        showContactPickerForNewContact()
+        // Make sure no sheets are currently presented
+        if state.activeSheet != nil {
+            // Wait for any current sheet to be dismissed
+            state.activeSheet = nil
+            
+            // Then show the contact picker after a slight delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                isEditingContact = false
+                editingContactIndex = nil
+                state.resetForm()
+                showContactPickerForNewContact()
+            }
+        } else {
+            // No sheets currently presented, proceed immediately
+            isEditingContact = false
+            editingContactIndex = nil
+            state.resetForm()
+            showContactPickerForNewContact()
+        }
     }
     
     private func showContactPickerForNewContact() {
@@ -1336,8 +1349,11 @@ struct ContactPickerWrapper: View {
                                                                (contact.emailAddresses.first?.value as String?) ?? ""
                         }
                         
-                        // Show the add contact form
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        // First dismiss the contact picker
+                        presentationMode.wrappedValue.dismiss()
+                        
+                        // Then show the add contact form with a slight delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             contentView.activeSheet = .addContact
                         }
                     } 
@@ -1351,11 +1367,13 @@ struct ContactPickerWrapper: View {
                         let displayName = fullName.isEmpty ? contact.organizationName : fullName
                         confirmationMessage = "Location sharing invitation sent to \(displayName)."
                         showingMessageConfirmation = true
+                        
+                        // Dismiss this picker
+                        presentationMode.wrappedValue.dismiss()
                     }
-                }
-                
-                // Dismiss the picker if not going to addContact
-                if contentView.activeSheet != .contactPicker {
+                } else {
+                    // Handle case when user cancels the picker without selecting a contact
+                    contentView.activeSheet = nil
                     presentationMode.wrappedValue.dismiss()
                 }
             }
