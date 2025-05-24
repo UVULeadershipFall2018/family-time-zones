@@ -271,6 +271,17 @@ struct ContentView: View {
                     secondaryButton: .cancel()
                 )
             }
+            .onReceive(state.$readyToShowForm) { readyToShow in
+                if readyToShow {
+                    // Only proceed if no sheet is currently showing
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if state.activeSheet == nil {
+                            state.activeSheet = .addContact
+                            state.readyToShowForm = false
+                        }
+                    }
+                }
+            }
         }
         .environmentObject(state)
     }
@@ -596,30 +607,23 @@ struct ContentView: View {
     }
     
     private func prepareForAdding() {
+        // Reset state and prepare
+        isEditingContact = false
+        editingContactIndex = nil
+        state.resetForm()
+        
         // Make sure no sheets are currently presented
         if state.activeSheet != nil {
-            // Wait for any current sheet to be dismissed
             state.activeSheet = nil
             
-            // Then show the contact picker after a slight delay
+            // Wait to ensure the sheet is fully dismissed
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                isEditingContact = false
-                editingContactIndex = nil
-                state.resetForm()
-                showContactPickerForNewContact()
+                state.activeSheet = .contactPicker
             }
         } else {
-            // No sheets currently presented, proceed immediately
-            isEditingContact = false
-            editingContactIndex = nil
-            state.resetForm()
-            showContactPickerForNewContact()
+            // No sheet currently presented, show picker immediately
+            state.activeSheet = .contactPicker
         }
-    }
-    
-    private func showContactPickerForNewContact() {
-        // Show contact picker directly and then populate form with selected contact
-        state.activeSheet = .contactPicker
     }
     
     private func resetForm() {
@@ -1349,13 +1353,12 @@ struct ContactPickerWrapper: View {
                                                                (contact.emailAddresses.first?.value as String?) ?? ""
                         }
                         
-                        // First dismiss the contact picker
-                        presentationMode.wrappedValue.dismiss()
+                        // Mark that we've got contact data and are ready to show the form
+                        contentView.readyToShowForm = true
                         
-                        // Then show the add contact form with a slight delay
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            contentView.activeSheet = .addContact
-                        }
+                        // First dismiss this picker
+                        contentView.activeSheet = nil
+                        presentationMode.wrappedValue.dismiss()
                     } 
                     // For location sharing invitations
                     else {
@@ -1429,6 +1432,7 @@ class ContentViewState: ObservableObject {
     @Published var hasAvailabilityWindow = false
     @Published var availableStartTime = 0
     @Published var availableEndTime = 24
+    @Published var readyToShowForm = false
     
     func resetForm() {
         newContactName = ""
@@ -1439,6 +1443,7 @@ class ContentViewState: ObservableObject {
         hasAvailabilityWindow = false
         availableStartTime = 8 * 60 // 8:00 AM
         availableEndTime = 22 * 60 // 10:00 PM
+        readyToShowForm = false
     }
 }
 
