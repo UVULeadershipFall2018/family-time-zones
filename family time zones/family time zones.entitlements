@@ -10,13 +10,5 @@
 	</array>
 	<key>com.apple.developer.weatherkit</key>
 	<true/>
-	<key>com.apple.developer.findmy.friend-permissions</key>
-	<true/>
-	<key>com.apple.runningboard.assertions.findmy</key>
-	<true/>
-	<key>com.apple.runningboard.primitiveattribute</key>
-	<true/>
-	<key>com.apple.runningboard.assertions.frontboard</key>
-	<true/>
 </dict>
 </plist>

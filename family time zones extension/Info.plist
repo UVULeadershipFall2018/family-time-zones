@@ -12,7 +12,7 @@
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
 	<key>CFBundleExecutable</key>
-	<string></string>
+	<string>$(EXECUTABLE_NAME)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Family Time Zones needs your location to automatically determine your time zone and update it when you travel.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
