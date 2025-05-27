@@ -10,6 +10,7 @@ import WidgetKit
 import Contacts
 import ContactsUI
 import UIKit
+import MessageUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
@@ -66,149 +67,19 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             List {
-                // Location Permission Section
-                Section(header: Text("Location Services")) {
-                    if !viewModel.locationManager.isLocationServicesEnabled {
-                        HStack {
-                            Image(systemName: "location.slash.fill")
-                                .foregroundColor(.red)
-                            Text("Location Services Disabled")
-                                .foregroundColor(.red)
-                        }
-                        
-                        Button(action: {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Text("Open Settings")
-                        }
-                    } else {
-                        switch viewModel.locationManager.permissionStatus {
-                        case .notDetermined:
-                            HStack {
-                                Image(systemName: "location.circle")
-                                    .foregroundColor(.orange)
-                                Text("Location permission not determined")
-                            }
-                            
-                            Button(action: {
-                                viewModel.locationManager.requestLocationPermission()
-                            }) {
-                                Text("Allow Location Access")
-                            }
-                            
-                        case .restricted, .denied:
-                            HStack {
-                                Image(systemName: "location.slash.fill")
-                                    .foregroundColor(.red)
-                                Text("Location access denied")
-                                    .foregroundColor(.red)
-                            }
-                            
-                            Button(action: {
-                                if let url = URL(string: UIApplication.openSettingsURLString) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                Text("Open Settings to Enable Location")
-                            }
-                            
-                        case .authorizedWhenInUse:
-                            HStack {
-                                Image(systemName: "location.fill")
-                                    .foregroundColor(.green)
-                                Text("Location access granted when app is in use")
-                                    .foregroundColor(.green)
-                            }
-                            
-                            Button(action: {
-                                viewModel.locationManager.requestAlwaysPermission()
-                            }) {
-                                Text("Request Background Location Access")
-                            }
-                            
-                        case .authorizedAlways:
-                            HStack {
-                                Image(systemName: "location.fill")
-                                    .foregroundColor(.green)
-                                Text("Full location access granted")
-                                    .foregroundColor(.green)
-                            }
-                            
-                        @unknown default:
-                            Text("Unknown location permission status")
-                        }
-                    }
-                }
-                
-                // My Location Section
-                Section(header: Text("My Location")) {
-                    Toggle("Use My Location for Time Zone", isOn: Binding(
-                        get: { viewModel.useMyLocationForTimeZone },
-                        set: { viewModel.setUseMyLocationForTimeZone($0) }
-                    ))
-                    
-                    if viewModel.useMyLocationForTimeZone {
-                        HStack {
-                            Text("Current Time Zone:")
-                            Spacer()
-                            Text(formatTimeZoneForDisplay(viewModel.myTimeZone))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // Only show this if location permission is granted
-                        if viewModel.locationManager.permissionStatus == .authorizedWhenInUse || 
-                           viewModel.locationManager.permissionStatus == .authorizedAlways {
-                            Button(action: {
-                                viewModel.updateUserTimeZone()
-                            }) {
-                                Text("Update My Time Zone")
-                            }
-                        }
-                    } else {
-                        Picker("My Time Zone", selection: Binding(
-                            get: { myTimeZone },
-                            set: { 
-                                myTimeZone = $0
-                                viewModel.setManualTimeZone($0)
-                            }
-                        )) {
-                            ForEach(filteredTimeZones, id: \.self) { timeZone in
-                                Text(formatTimeZoneForDisplay(timeZone)).tag(timeZone)
-                            }
-                        }
-                    }
-                }
-                
-                // Location Sharing Section
-                Section(header: Text("Location Sharing")) {
-                    Button(action: {
-                        showLocationSharingInvitationView()
-                    }) {
-                        Label("Manage Location Sharing", systemImage: "location.fill")
-                    }
-                    
-                    if !viewModel.getLocationSharingContacts().isEmpty {
-                        ForEach(viewModel.getLocationSharingContacts()) { contact in
-                            HStack {
-                                Text(contact.name)
-                                Spacer()
-                                if let lastUpdate = contact.lastLocationUpdate {
-                                    Text("Updated \(formatRelativeTime(lastUpdate))")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("Pending")
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                        }
-                    }
-                }
-                
+                // Contacts Section - Always shown
                 contactListView
+                
+                // Settings Link Section
+                Section {
+                    NavigationLink(destination: SettingsView(viewModel: viewModel)) {
+                        HStack {
+                            Image(systemName: "gear")
+                                .foregroundColor(.blue)
+                            Text("Settings")
+                        }
+                    }
+                }
             }
             .navigationTitle("Family Time Zones")
             .toolbar {
@@ -240,7 +111,8 @@ struct ContentView: View {
                         hasAvailabilityWindow: $state.hasAvailabilityWindow,
                         availableStartTime: $state.availableStartTime,
                         availableEndTime: $state.availableEndTime,
-                        searchText: $searchText
+                        searchText: $searchText,
+                        phoneNumber: $state.newContactPhoneNumber
                     )
                 case .locationSharing:
                     LocationSharingInvitationView(
@@ -303,6 +175,12 @@ struct ContentView: View {
                             state.readyToShowForm = false
                         }
                     }
+                }
+            }
+            .onReceive(viewModel.$showLocationSharingInvitation) { show in
+                if show {
+                    state.activeSheet = .locationSharing
+                    viewModel.showLocationSharingInvitation = false
                 }
             }
         }
@@ -368,6 +246,15 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                     TextField("Contact Name", text: $state.newContactName)
                         .font(.body)
+                }
+                
+                VStack(alignment: .leading) {
+                    Text("Phone Number")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Phone Number", text: $state.newContactPhoneNumber)
+                        .font(.body)
+                        .keyboardType(.phonePad)
                 }
                 
                 if !state.selectedAppleIdEmail.isNilOrEmpty {
@@ -570,6 +457,7 @@ struct ContentView: View {
             updatedContact.color = state.newContactColor
             updatedContact.useLocationForTimeZone = state.useLocationTracking
             updatedContact.email = state.selectedAppleIdEmail ?? ""
+            updatedContact.phoneNumber = state.newContactPhoneNumber
             // Handle availability window
             updatedContact.availableStartTime = state.hasAvailabilityWindow ? state.availableStartTime : 0
             updatedContact.availableEndTime = state.hasAvailabilityWindow ? state.availableEndTime : 24 * 60
@@ -584,6 +472,7 @@ struct ContentView: View {
                 color: state.newContactColor,
                 useLocationTracking: state.useLocationTracking,
                 appleIdEmail: state.selectedAppleIdEmail,
+                phoneNumber: state.newContactPhoneNumber,
                 lastLocationUpdate: nil,
                 hasAvailabilityWindow: state.hasAvailabilityWindow,
                 availableStartTime: state.hasAvailabilityWindow ? state.availableStartTime : 0,
@@ -622,6 +511,7 @@ struct ContentView: View {
         state.newContactColor = contact.color
         state.useLocationTracking = contact.useLocationForTimeZone
         state.selectedAppleIdEmail = contact.email
+        state.newContactPhoneNumber = contact.phoneNumber
         state.hasAvailabilityWindow = contact.hasAvailabilityWindow
         state.availableStartTime = contact.availableStartTime
         state.availableEndTime = contact.availableEndTime
@@ -672,6 +562,7 @@ struct ContentView: View {
             color: state.newContactColor,
             useLocationTracking: state.useLocationTracking,
             appleIdEmail: state.selectedAppleIdEmail,
+            phoneNumber: state.newContactPhoneNumber,
             lastLocationUpdate: nil as Date?,
             hasAvailabilityWindow: state.hasAvailabilityWindow,
             availableStartTime: state.availableStartTime,
@@ -738,6 +629,63 @@ struct ContentView: View {
     }
 }
 
+// Replace the MessageUI placeholder with proper MFMessageComposeViewController wrapper
+struct MessageUI: UIViewControllerRepresentable {
+    @Environment(\.presentationMode) var presentationMode
+    let recipient: String
+    let body: String
+    
+    class Coordinator: NSObject, MFMessageComposeViewControllerDelegate {
+        var parent: MessageUI
+        
+        init(_ parent: MessageUI) {
+            self.parent = parent
+        }
+        
+        func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
+            // Dismiss the message compose view controller
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(self)
+    }
+    
+    func makeUIViewController(context: Context) -> UIViewController {
+        if MFMessageComposeViewController.canSendText() {
+            let controller = MFMessageComposeViewController()
+            controller.messageComposeDelegate = context.coordinator
+            
+            // If the recipient is a phone number, add it
+            if !recipient.isEmpty {
+                controller.recipients = [recipient]
+            }
+            
+            // Add body text if provided
+            if !body.isEmpty {
+                controller.body = body
+            }
+            
+            return controller
+        } else {
+            // Fallback if the device can't send text messages
+            let controller = UIViewController()
+            let label = UILabel()
+            label.text = "Text messaging is not available on this device"
+            label.textAlignment = .center
+            label.frame = controller.view.bounds
+            controller.view.addSubview(label)
+            return controller
+        }
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        // Nothing to update
+    }
+}
+
+// Fix ContactRow to properly handle phone numbers and messaging
 struct ContactRow: View {
     let contact: Contact
     @State private var currentTime = Date()
@@ -822,13 +770,15 @@ struct ContactRow: View {
                 title: Text("Outside Availability Window"),
                 message: Text("\(contact.name) is not available right now. They are usually available between \(contact.formattedAvailabilityWindow()). Would you still like to send a message?"),
                 primaryButton: .default(Text("Send Anyway")) {
-                    composeMessage()
+                    openSystemMessaging()
                 },
                 secondaryButton: .cancel()
             )
         }
         .sheet(isPresented: $showingMessageComposer) {
-            MessageComposerView(contact: contact, message: $messageText)
+            // Use the phone number or email for messaging
+            let recipientInfo = getPhoneNumber() ?? contact.email
+            MessageUI(recipient: recipientInfo, body: "")
         }
     }
     
@@ -839,12 +789,34 @@ struct ContactRow: View {
             showingMessageConfirmation = true
         } else {
             // Directly proceed to messaging if available
-            composeMessage()
+            openSystemMessaging()
         }
     }
     
-    private func composeMessage() {
-        showingMessageComposer = true
+    private func openSystemMessaging() {
+        // Check if MFMessageComposeViewController can be used
+        if MFMessageComposeViewController.canSendText() {
+            showingMessageComposer = true
+        } else {
+            // Fallback to URL scheme if MessageUI isn't available
+            if let phoneNumber = getPhoneNumber() {
+                // Format the phone number by removing non-numeric characters
+                let formattedNumber = phoneNumber.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+                if !formattedNumber.isEmpty, let url = URL(string: "sms:\(formattedNumber)") {
+                    UIApplication.shared.open(url)
+                }
+            } else if !contact.email.isEmpty {
+                // Try to message using email
+                showingMessageComposer = true
+            }
+        }
+    }
+    
+    // Helper function to get a valid phone number from the contact's email
+    // In a real app, you'd look up the phone number from the contact
+    private func getPhoneNumber() -> String? {
+        // Return the phone number from the contact if it's not empty
+        return contact.phoneNumber.isEmpty ? nil : contact.phoneNumber
     }
     
     private var availabilityBadge: some View {
@@ -871,62 +843,6 @@ struct ContactRow: View {
         case "gray", "grey": return .gray
         default: return .blue
         }
-    }
-}
-
-struct MessageComposerView: View {
-    let contact: Contact
-    @Binding var message: String
-    @Environment(\.presentationMode) var presentationMode
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("To: \(contact.name)")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                
-                TextEditor(text: $message)
-                    .padding()
-                    .frame(minHeight: 200)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                    )
-                    .padding()
-                
-                if contact.hasAvailabilityWindow && !contact.isAvailable() {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("Note: \(contact.name) is outside their usual availability hours.")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
-                    .padding(.horizontal)
-                }
-                
-                Spacer()
-            }
-            .navigationBarTitle("New Message", displayMode: .inline)
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    presentationMode.wrappedValue.dismiss()
-                },
-                trailing: Button("Send") {
-                    sendMessage()
-                    presentationMode.wrappedValue.dismiss()
-                }
-                .disabled(message.isEmpty)
-            )
-        }
-    }
-    
-    private func sendMessage() {
-        // In a real app, this would integrate with messaging APIs
-        print("Sending message to \(contact.name): \(message)")
-        message = ""
     }
 }
 
@@ -993,6 +909,7 @@ struct ContactEditView: View {
     @Binding var availableStartTime: Int
     @Binding var availableEndTime: Int
     @Binding var searchText: String
+    @Binding var phoneNumber: String
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
@@ -1001,6 +918,9 @@ struct ContactEditView: View {
             Form {
                 Section(header: Text("Contact Info")) {
                     TextField("Name", text: $name)
+                    
+                    TextField("Phone Number", text: $phoneNumber)
+                        .keyboardType(.phonePad)
                     
                     if !useLocationTracking {
                         ZStack {
@@ -1099,6 +1019,12 @@ struct ContactEditView: View {
                 }
                 .disabled(name.isEmpty)
             )
+            .onAppear {
+                // Load the phone number when the view appears
+                if let index = editingIndex, index < viewModel.contacts.count {
+                    phoneNumber = viewModel.contacts[index].phoneNumber
+                }
+            }
         }
     }
     
@@ -1157,6 +1083,7 @@ struct ContactEditView: View {
             updatedContact.color = color
             updatedContact.useLocationTracking = useLocationTracking
             updatedContact.appleIdEmail = selectedAppleIdEmail
+            updatedContact.phoneNumber = phoneNumber
             // Handle availability window
             updatedContact.availableStartTime = hasAvailabilityWindow ? availableStartTime : 0
             updatedContact.availableEndTime = hasAvailabilityWindow ? availableEndTime : 24 * 60
@@ -1171,6 +1098,7 @@ struct ContactEditView: View {
                 color: color,
                 useLocationTracking: useLocationTracking,
                 appleIdEmail: selectedAppleIdEmail,
+                phoneNumber: phoneNumber,
                 lastLocationUpdate: nil as Date?,
                 hasAvailabilityWindow: hasAvailabilityWindow,
                 availableStartTime: hasAvailabilityWindow ? availableStartTime : 0,
@@ -1195,6 +1123,7 @@ struct ContactEditView: View {
             color: color,
             useLocationTracking: useLocationTracking,
             appleIdEmail: selectedAppleIdEmail,
+            phoneNumber: phoneNumber,
             lastLocationUpdate: nil as Date?,
             hasAvailabilityWindow: hasAvailabilityWindow,
             availableStartTime: availableStartTime,
@@ -1410,6 +1339,7 @@ class ContentViewState: ObservableObject {
     @Published var newContactColor = "blue"
     @Published var useLocationTracking = false
     @Published var selectedAppleIdEmail: String?
+    @Published var newContactPhoneNumber = ""
     @Published var hasAvailabilityWindow = false
     @Published var availableStartTime = 0
     @Published var availableEndTime = 24
@@ -1421,10 +1351,200 @@ class ContentViewState: ObservableObject {
         newContactColor = "blue"
         useLocationTracking = false
         selectedAppleIdEmail = nil
+        newContactPhoneNumber = ""
         hasAvailabilityWindow = false
         availableStartTime = 8 * 60 // 8:00 AM
         availableEndTime = 22 * 60 // 10:00 PM
         readyToShowForm = false
+    }
+}
+
+// SettingsView to display all the settings previously in ContentView
+struct SettingsView: View {
+    @ObservedObject var viewModel: ContactViewModel
+    @State private var myTimeZone = TimeZone.current.identifier
+    @State private var searchText = ""
+    @Environment(\.presentationMode) var presentationMode
+    
+    var filteredTimeZones: [String] {
+        return TimeZone.knownTimeZoneIdentifiers.filter { identifier in
+            searchText.isEmpty || identifier.localizedCaseInsensitiveContains(searchText)
+        }.sorted()
+    }
+    
+    func formatTimeZoneForDisplay(_ identifier: String) -> String {
+        guard let timeZone = TimeZone(identifier: identifier) else {
+            return identifier
+        }
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "z"
+        let abbreviation = formatter.string(from: Date())
+        
+        let offset = timeZone.secondsFromGMT() / 3600
+        let offsetString = offset >= 0 ? "GMT+\(offset)" : "GMT\(offset)"
+        
+        return "\(identifier.replacingOccurrences(of: "_", with: " ")) (\(offsetString), \(abbreviation))"
+    }
+    
+    func formatRelativeTime(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+    
+    var body: some View {
+        List {
+            // Location Permission Section
+            Section(header: Text("Location Services")) {
+                if !viewModel.locationManager.isLocationServicesEnabled {
+                    HStack {
+                        Image(systemName: "location.slash.fill")
+                            .foregroundColor(.red)
+                        Text("Location Services Disabled")
+                            .foregroundColor(.red)
+                    }
+                    
+                    Button(action: {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        Text("Open Settings")
+                    }
+                } else {
+                    switch viewModel.locationManager.permissionStatus {
+                    case .notDetermined:
+                        HStack {
+                            Image(systemName: "location.circle")
+                                .foregroundColor(.orange)
+                            Text("Location permission not determined")
+                        }
+                        
+                        Button(action: {
+                            viewModel.locationManager.requestLocationPermission()
+                        }) {
+                            Text("Allow Location Access")
+                        }
+                        
+                    case .restricted, .denied:
+                        HStack {
+                            Image(systemName: "location.slash.fill")
+                                .foregroundColor(.red)
+                            Text("Location access denied")
+                                .foregroundColor(.red)
+                        }
+                        
+                        Button(action: {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            Text("Open Settings to Enable Location")
+                        }
+                        
+                    case .authorizedWhenInUse:
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(.green)
+                            Text("Location access granted when app is in use")
+                                .foregroundColor(.green)
+                        }
+                        
+                        Button(action: {
+                            viewModel.locationManager.requestAlwaysPermission()
+                        }) {
+                            Text("Request Background Location Access")
+                        }
+                        
+                    case .authorizedAlways:
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(.green)
+                            Text("Full location access granted")
+                                .foregroundColor(.green)
+                        }
+                        
+                    @unknown default:
+                        Text("Unknown location permission status")
+                    }
+                }
+            }
+            
+            // My Location Section
+            Section(header: Text("My Location")) {
+                Toggle("Use My Location for Time Zone", isOn: Binding(
+                    get: { viewModel.useMyLocationForTimeZone },
+                    set: { viewModel.setUseMyLocationForTimeZone($0) }
+                ))
+                
+                if viewModel.useMyLocationForTimeZone {
+                    HStack {
+                        Text("Current Time Zone:")
+                        Spacer()
+                        Text(formatTimeZoneForDisplay(viewModel.myTimeZone))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Only show this if location permission is granted
+                    if viewModel.locationManager.permissionStatus == .authorizedWhenInUse || 
+                       viewModel.locationManager.permissionStatus == .authorizedAlways {
+                        Button(action: {
+                            viewModel.updateUserTimeZone()
+                        }) {
+                            Text("Update My Time Zone")
+                        }
+                    }
+                } else {
+                    Picker("My Time Zone", selection: Binding(
+                        get: { myTimeZone },
+                        set: { 
+                            myTimeZone = $0
+                            viewModel.setManualTimeZone($0)
+                        }
+                    )) {
+                        ForEach(filteredTimeZones, id: \.self) { timeZone in
+                            Text(formatTimeZoneForDisplay(timeZone)).tag(timeZone)
+                        }
+                    }
+                }
+            }
+            
+            // Location Sharing Section
+            Section(header: Text("Location Sharing")) {
+                Button(action: {
+                    // Dismiss this view first, then show location sharing
+                    presentationMode.wrappedValue.dismiss()
+                    
+                    // Use a small delay to ensure the view is dismissed first
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        viewModel.showLocationSharingInvitation = true
+                    }
+                }) {
+                    Label("Manage Location Sharing", systemImage: "location.fill")
+                }
+                
+                if !viewModel.getLocationSharingContacts().isEmpty {
+                    ForEach(viewModel.getLocationSharingContacts()) { contact in
+                        HStack {
+                            Text(contact.name)
+                            Spacer()
+                            if let lastUpdate = contact.lastLocationUpdate {
+                                Text("Updated \(formatRelativeTime(lastUpdate))")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("Pending")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Settings")
     }
 }
 

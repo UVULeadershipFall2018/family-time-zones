@@ -8,6 +8,7 @@ struct Contact: Identifiable, Codable, Hashable {
     var availableStartTime: Int // Minutes from midnight
     var availableEndTime: Int // Minutes from midnight
     var email: String
+    var phoneNumber: String = "" // Add phone number for SMS messaging
     var useLocationForTimeZone: Bool
     var lastLocationUpdate: Date?
     
@@ -40,6 +41,7 @@ struct Contact: Identifiable, Codable, Hashable {
         color: String,
         useLocationTracking: Bool = false,
         appleIdEmail: String? = nil,
+        phoneNumber: String? = nil,
         lastLocationUpdate: Date? = nil,
         hasAvailabilityWindow: Bool = false,
         availableStartTime: Int = 8 * 60,
@@ -51,6 +53,7 @@ struct Contact: Identifiable, Codable, Hashable {
         self.color = color
         self.useLocationForTimeZone = useLocationTracking
         self.email = appleIdEmail ?? ""
+        self.phoneNumber = phoneNumber ?? ""
         self.lastLocationUpdate = lastLocationUpdate
         
         // Set availability based on hasAvailabilityWindow

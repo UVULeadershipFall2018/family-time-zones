@@ -12,6 +12,7 @@ class ContactViewModel: ObservableObject {
     @Published var useMyLocationForTimeZone: Bool = false
     @Published var myTimeZone: String = TimeZone.current.identifier
     @Published var searchText = ""
+    @Published var showLocationSharingInvitation: Bool = false
     
     // Constants for use in views
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
@@ -293,10 +294,7 @@ class ContactViewModel: ObservableObject {
         return contacts.filter { $0.useLocationForTimeZone }
     }
     
-    // Show location sharing invitation view
-    func showLocationSharingInvitation() {
-        // This will be handled in the ContentView
-    }
+    // Note: We're now using the showLocationSharingInvitation Boolean property instead of this method
     
     // Get available contacts for location sharing
     func availableSharedLocationContacts() -> [LocationManager.SharedLocationContact] {
