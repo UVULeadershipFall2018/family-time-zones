@@ -23,6 +23,13 @@ struct ContentView: View {
     @State private var myTimeZone = TimeZone.current.identifier
     @State private var messageConfirmationText = ""
     @State private var showingMessageConfirmation = false
+    @State private var messageRecipient: Contact?
+    @State private var showingMessageComposer = false
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case name, phoneNumber, search
+    }
     
     enum ActiveSheet: Identifiable {
         case addContact
@@ -255,6 +262,19 @@ struct ContentView: View {
                     TextField("Phone Number", text: $state.newContactPhoneNumber)
                         .font(.body)
                         .keyboardType(.phonePad)
+                        .submitLabel(.done)
+                        .focused($focusedField, equals: .phoneNumber)
+                        .onChange(of: focusedField) { newValue in
+                            if newValue != .phoneNumber {
+                                // Ensure value is saved when focus moves away
+                                state.newContactPhoneNumber = state.newContactPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                        }
+                        .onSubmit {
+                            // Explicitly commit the value when focus changes
+                            state.newContactPhoneNumber = state.newContactPhoneNumber
+                            focusedField = nil
+                        }
                 }
                 
                 if !state.selectedAppleIdEmail.isNilOrEmpty {
@@ -911,6 +931,12 @@ struct ContactEditView: View {
     @Binding var searchText: String
     @Binding var phoneNumber: String
     
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case name, phoneNumber
+    }
+    
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
     var body: some View {
@@ -921,6 +947,19 @@ struct ContactEditView: View {
                     
                     TextField("Phone Number", text: $phoneNumber)
                         .keyboardType(.phonePad)
+                        .submitLabel(.done)
+                        .focused($focusedField, equals: .phoneNumber)
+                        .onChange(of: focusedField) { newValue in
+                            if newValue != .phoneNumber {
+                                // Ensure value is saved when focus moves away
+                                phoneNumber = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                        }
+                        .onSubmit {
+                            // Explicitly commit the value when focus changes
+                            phoneNumber = phoneNumber
+                            focusedField = nil
+                        }
                     
                     if !useLocationTracking {
                         ZStack {
