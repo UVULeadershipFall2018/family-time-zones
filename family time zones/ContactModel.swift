@@ -8,7 +8,7 @@ struct Contact: Identifiable, Codable, Hashable {
     var availableStartTime: Int // Minutes from midnight
     var availableEndTime: Int // Minutes from midnight
     var email: String
-    var phoneNumber: String = "" // Add phone number for SMS messaging
+    var phoneNumber: String = "" // For system contacts integration
     var useLocationForTimeZone: Bool
     var lastLocationUpdate: Date?
     

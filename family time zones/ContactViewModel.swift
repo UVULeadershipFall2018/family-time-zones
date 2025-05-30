@@ -160,7 +160,11 @@ class ContactViewModel: ObservableObject {
         let id = contacts[index].id
         let useLocationTracking = contacts[index].useLocationTracking 
         let appleIdEmail = contacts[index].appleIdEmail
+        let phoneNumber = contacts[index].phoneNumber // Preserve existing phone number
         let lastLocationUpdate = contacts[index].lastLocationUpdate
+        let hasAvailabilityWindow = contacts[index].hasAvailabilityWindow
+        let availableStartTime = contacts[index].availableStartTime
+        let availableEndTime = contacts[index].availableEndTime
         
         contacts[index] = Contact(
             id: id,
@@ -169,7 +173,11 @@ class ContactViewModel: ObservableObject {
             color: color,
             useLocationTracking: useLocationTracking,
             appleIdEmail: appleIdEmail,
-            lastLocationUpdate: lastLocationUpdate
+            phoneNumber: phoneNumber, // Pass through existing phone number
+            lastLocationUpdate: lastLocationUpdate,
+            hasAvailabilityWindow: hasAvailabilityWindow,
+            availableStartTime: availableStartTime,
+            availableEndTime: availableEndTime
         )
         saveContacts()
     }

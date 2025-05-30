@@ -12,6 +12,32 @@ import ContactsUI
 import UIKit
 import MessageUI
 
+// Extension to simplify opening contacts
+extension UIApplication {
+    static func openContactInSystemApp(contact: Contact) {
+        // First try to open the specific contact by name if available
+        if !contact.name.isEmpty {
+            // Create a URL to search for the contact by name
+            let encodedName = contact.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            if let url = URL(string: "contacts:///search/\(encodedName)"), shared.canOpenURL(url) {
+                shared.open(url)
+                return
+            }
+        }
+        
+        // Fallback to just opening Contacts app
+        if let url = URL(string: "contacts://"), shared.canOpenURL(url) {
+            shared.open(url)
+        }
+    }
+    
+    static func openContactsApp() {
+        if let url = URL(string: "contacts://"), shared.canOpenURL(url) {
+            shared.open(url)
+        }
+    }
+}
+
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
     @StateObject private var state = ContentViewState()
@@ -255,27 +281,25 @@ struct ContentView: View {
                         .font(.body)
                 }
                 
-                VStack(alignment: .leading) {
-                    Text("Phone Number")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    TextField("Phone Number", text: $state.newContactPhoneNumber)
-                        .font(.body)
-                        .keyboardType(.phonePad)
-                        .submitLabel(.done)
-                        .focused($focusedField, equals: .phoneNumber)
-                        .onChange(of: focusedField) { oldValue, newValue in
-                            if newValue != .phoneNumber {
-                                // Ensure value is saved when focus moves away
-                                state.newContactPhoneNumber = state.newContactPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-                            }
-                        }
-                        .onSubmit {
-                            // Explicitly commit the value when focus changes
-                            state.newContactPhoneNumber = state.newContactPhoneNumber
-                            focusedField = nil
-                        }
+                // Replace phone number field with a button to edit in system contacts
+                Button(action: {
+                    // Open the system contacts app to edit this contact
+                    if isEditingContact, let index = editingContactIndex, index < viewModel.contacts.count {
+                        UIApplication.openContactInSystemApp(contact: viewModel.contacts[index])
+                    } else {
+                        UIApplication.openContactsApp()
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "person.crop.circle.fill")
+                        Text("Edit in Contacts App")
+                    }
                 }
+                .padding(.vertical, 2)
+                
+                Text("Contact details like phone numbers and emails are managed through your device's Contacts app.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 
                 if !state.selectedAppleIdEmail.isNilOrEmpty {
                     HStack {
@@ -476,8 +500,6 @@ struct ContentView: View {
             updatedContact.timeZoneIdentifier = timeZoneIdentifier
             updatedContact.color = state.newContactColor
             updatedContact.useLocationForTimeZone = state.useLocationTracking
-            updatedContact.email = state.selectedAppleIdEmail ?? ""
-            updatedContact.phoneNumber = state.newContactPhoneNumber
             // Handle availability window
             updatedContact.availableStartTime = state.hasAvailabilityWindow ? state.availableStartTime : 0
             updatedContact.availableEndTime = state.hasAvailabilityWindow ? state.availableEndTime : 24 * 60
@@ -492,7 +514,7 @@ struct ContentView: View {
                 color: state.newContactColor,
                 useLocationTracking: state.useLocationTracking,
                 appleIdEmail: state.selectedAppleIdEmail,
-                phoneNumber: state.newContactPhoneNumber,
+                phoneNumber: "", // No direct phone input
                 lastLocationUpdate: nil,
                 hasAvailabilityWindow: state.hasAvailabilityWindow,
                 availableStartTime: state.hasAvailabilityWindow ? state.availableStartTime : 0,
@@ -582,7 +604,7 @@ struct ContentView: View {
             color: state.newContactColor,
             useLocationTracking: state.useLocationTracking,
             appleIdEmail: state.selectedAppleIdEmail,
-            phoneNumber: state.newContactPhoneNumber,
+            phoneNumber: "", // No direct phone input
             lastLocationUpdate: nil as Date?,
             hasAvailabilityWindow: state.hasAvailabilityWindow,
             availableStartTime: state.availableStartTime,
@@ -945,21 +967,25 @@ struct ContactEditView: View {
                 Section(header: Text("Contact Info")) {
                     TextField("Name", text: $name)
                     
-                    TextField("Phone Number", text: $phoneNumber)
-                        .keyboardType(.phonePad)
-                        .submitLabel(.done)
-                        .focused($focusedField, equals: .phoneNumber)
-                        .onChange(of: focusedField) { oldValue, newValue in
-                            if newValue != .phoneNumber {
-                                // Ensure value is saved when focus moves away
-                                phoneNumber = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-                            }
+                    // Replace phone number field with a button to edit in system contacts
+                    Button(action: {
+                        // Open the system contacts app to edit this contact
+                        if isEditing, let index = editingIndex, index < viewModel.contacts.count {
+                            UIApplication.openContactInSystemApp(contact: viewModel.contacts[index])
+                        } else {
+                            UIApplication.openContactsApp()
                         }
-                        .onSubmit {
-                            // Explicitly commit the value when focus changes
-                            phoneNumber = phoneNumber
-                            focusedField = nil
+                    }) {
+                        HStack {
+                            Image(systemName: "person.crop.circle.fill")
+                            Text("Edit in Contacts App")
                         }
+                    }
+                    .padding(.vertical, 2)
+                    
+                    Text("Contact details like phone numbers and emails are managed through your device's Contacts app.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     
                     if !useLocationTracking {
                         ZStack {
@@ -1121,8 +1147,6 @@ struct ContactEditView: View {
             updatedContact.timeZoneIdentifier = timeZoneIdentifier
             updatedContact.color = color
             updatedContact.useLocationTracking = useLocationTracking
-            updatedContact.appleIdEmail = selectedAppleIdEmail
-            updatedContact.phoneNumber = phoneNumber
             // Handle availability window
             updatedContact.availableStartTime = hasAvailabilityWindow ? availableStartTime : 0
             updatedContact.availableEndTime = hasAvailabilityWindow ? availableEndTime : 24 * 60
@@ -1137,7 +1161,7 @@ struct ContactEditView: View {
                 color: color,
                 useLocationTracking: useLocationTracking,
                 appleIdEmail: selectedAppleIdEmail,
-                phoneNumber: phoneNumber,
+                phoneNumber: "", // No direct phone input
                 lastLocationUpdate: nil as Date?,
                 hasAvailabilityWindow: hasAvailabilityWindow,
                 availableStartTime: hasAvailabilityWindow ? availableStartTime : 0,
@@ -1162,7 +1186,7 @@ struct ContactEditView: View {
             color: color,
             useLocationTracking: useLocationTracking,
             appleIdEmail: selectedAppleIdEmail,
-            phoneNumber: phoneNumber,
+            phoneNumber: "", // No direct phone input
             lastLocationUpdate: nil as Date?,
             hasAvailabilityWindow: hasAvailabilityWindow,
             availableStartTime: availableStartTime,
@@ -1378,7 +1402,6 @@ class ContentViewState: ObservableObject {
     @Published var newContactColor = "blue"
     @Published var useLocationTracking = false
     @Published var selectedAppleIdEmail: String?
-    @Published var newContactPhoneNumber = ""
     @Published var hasAvailabilityWindow = false
     @Published var availableStartTime = 0
     @Published var availableEndTime = 24
@@ -1390,7 +1413,6 @@ class ContentViewState: ObservableObject {
         newContactColor = "blue"
         useLocationTracking = false
         selectedAppleIdEmail = nil
-        newContactPhoneNumber = ""
         hasAvailabilityWindow = false
         availableStartTime = 8 * 60 // 8:00 AM
         availableEndTime = 22 * 60 // 10:00 PM
