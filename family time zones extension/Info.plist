@@ -19,5 +19,7 @@
 	<string>Family Time Zones needs your location to automatically determine your time zone and update it when you travel.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Family Time Zones needs your location to automatically determine your time zone and update it when you travel.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Contacts access is needed to invite friends to share their location with you for time zone updates.</string>
 </dict>
 </plist>

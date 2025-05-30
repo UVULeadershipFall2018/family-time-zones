@@ -11,32 +11,7 @@ import Contacts
 import ContactsUI
 import UIKit
 import MessageUI
-
-// Extension to simplify opening contacts
-extension UIApplication {
-    static func openContactInSystemApp(contact: Contact) {
-        // First try to open the specific contact by name if available
-        if !contact.name.isEmpty {
-            // Create a URL to search for the contact by name
-            let encodedName = contact.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            if let url = URL(string: "contacts:///search/\(encodedName)"), shared.canOpenURL(url) {
-                shared.open(url)
-                return
-            }
-        }
-        
-        // Fallback to just opening Contacts app
-        if let url = URL(string: "contacts://"), shared.canOpenURL(url) {
-            shared.open(url)
-        }
-    }
-    
-    static func openContactsApp() {
-        if let url = URL(string: "contacts://"), shared.canOpenURL(url) {
-            shared.open(url)
-        }
-    }
-}
+import Foundation
 
 struct ContentView: View {
     @StateObject private var viewModel = ContactViewModel()
@@ -53,8 +28,34 @@ struct ContentView: View {
     @State private var showingMessageComposer = false
     @FocusState private var focusedField: Field?
     
+    // Store the mapping of cities to timezones
+    static var cityToTimezoneMap: [String: String] = {
+        // Try to load from YamlUtil
+        if let yamlUtil = NSClassFromString("YamlUtil") as? NSObject.Type,
+           let method = yamlUtil.perform(NSSelectorFromString("loadCityTimezoneMap")) {
+            if let map = method.takeUnretainedValue() as? [String: String] {
+                return map
+            }
+        }
+        
+        // Fallback - load a few common cities manually
+        var fallbackMap: [String: String] = [:]
+        fallbackMap["new york"] = "America/New_York"
+        fallbackMap["los angeles"] = "America/Los_Angeles"
+        fallbackMap["chicago"] = "America/Chicago"
+        fallbackMap["denver"] = "America/Denver"
+        fallbackMap["london"] = "Europe/London"
+        fallbackMap["paris"] = "Europe/Paris"
+        fallbackMap["tokyo"] = "Asia/Tokyo"
+        fallbackMap["sydney"] = "Australia/Sydney"
+        fallbackMap["beijing"] = "Asia/Shanghai"
+        fallbackMap["salt lake city"] = "America/Denver"
+        
+        return fallbackMap
+    }()
+    
     enum Field {
-        case name, phoneNumber, search
+        case name, search
     }
     
     enum ActiveSheet: Identifiable {
@@ -76,9 +77,29 @@ struct ContentView: View {
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
     
     var filteredTimeZones: [String] {
-        return TimeZone.knownTimeZoneIdentifiers.filter { identifier in
-            searchText.isEmpty || identifier.localizedCaseInsensitiveContains(searchText)
-        }.sorted()
+        if searchText.isEmpty {
+            return TimeZone.knownTimeZoneIdentifiers.sorted()
+        }
+        
+        let searchTextLower = searchText.lowercased()
+        
+        // First, check if the search text matches any city names
+        var matchingTimezones = Set<String>()
+        
+        // Search through city names using ContentView's map
+        let cityMap = ContentView.cityToTimezoneMap
+        for (cityName, timezone) in cityMap {
+            if cityName.lowercased().contains(searchTextLower) {
+                matchingTimezones.insert(timezone)
+            }
+        }
+        
+        // Also include direct timezone identifier matches
+        matchingTimezones.formUnion(TimeZone.knownTimeZoneIdentifiers.filter { 
+            $0.lowercased().contains(searchTextLower) 
+        })
+        
+        return Array(matchingTimezones).sorted()
     }
     
     func formatTimeZoneForDisplay(_ identifier: String) -> String {
@@ -281,26 +302,6 @@ struct ContentView: View {
                         .font(.body)
                 }
                 
-                // Replace phone number field with a button to edit in system contacts
-                Button(action: {
-                    // Open the system contacts app to edit this contact
-                    if isEditingContact, let index = editingContactIndex, index < viewModel.contacts.count {
-                        UIApplication.openContactInSystemApp(contact: viewModel.contacts[index])
-                    } else {
-                        UIApplication.openContactsApp()
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "person.crop.circle.fill")
-                        Text("Edit in Contacts App")
-                    }
-                }
-                .padding(.vertical, 2)
-                
-                Text("Contact details like phone numbers and emails are managed through your device's Contacts app.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
                 if !state.selectedAppleIdEmail.isNilOrEmpty {
                     HStack {
                         Text("Email")
@@ -437,19 +438,32 @@ struct ContentView: View {
     }
     
     private func timeZoneDetailsView(for timeZone: String) -> some View {
-        HStack {
-            let tz = TimeZone(identifier: timeZone) ?? TimeZone.current
-            let formatter = DateFormatter()
-            formatter.timeZone = tz
-            formatter.timeStyle = .short
-            
-            return Group {
-                Text(formatter.string(from: Date()))
+        let tz = TimeZone(identifier: timeZone) ?? TimeZone.current
+        let formatter = DateFormatter()
+        formatter.timeZone = tz
+        formatter.timeStyle = .short
+        
+        let currentTimeString = formatter.string(from: Date())
+        let offsetString = getTimeOffset(for: timeZone)
+        
+        return VStack(alignment: .leading) {
+            HStack {
+                Text(currentTimeString)
                     .font(.caption)
                 
-                Text(getTimeOffset(for: timeZone))
+                Text(offsetString)
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+            
+            if !searchText.isEmpty {
+                let matchingCities = getCitiesForTimeZone(timeZone, matchingSearch: searchText)
+                if !matchingCities.isEmpty {
+                    Text("Cities: " + matchingCities)
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .lineLimit(1)
+                }
             }
         }
     }
@@ -668,6 +682,36 @@ struct ContentView: View {
         } label: {
             Label("Select Contact", systemImage: "plus")
         }
+    }
+    
+    // Add this helper function inside ContentView struct
+    private func getCitiesForTimeZone(_ timeZoneId: String, matchingSearch searchText: String? = nil) -> String {
+        // Get cities that map to this timezone - use ContentView's map
+        let cityMap = ContentView.cityToTimezoneMap
+        
+        let matchingCities = cityMap.compactMap { (city, timezone) -> String? in
+            if timezone == timeZoneId {
+                // If search text is provided, only include cities that match the search
+                if let searchText = searchText?.lowercased(), !searchText.isEmpty {
+                    if city.lowercased().contains(searchText) {
+                        return city
+                    } else {
+                        return nil
+                    }
+                }
+                return city
+            }
+            return nil
+        }.sorted()
+        
+        // Limit to the first 3 cities for display purposes
+        if matchingCities.count > 3 {
+            return matchingCities.prefix(3).joined(separator: ", ") + "..."
+        } else if !matchingCities.isEmpty {
+            return matchingCities.joined(separator: ", ")
+        }
+        
+        return ""
     }
 }
 
@@ -956,7 +1000,7 @@ struct ContactEditView: View {
     @FocusState private var focusedField: Field?
     
     enum Field {
-        case name, phoneNumber
+        case name
     }
     
     let availableColors = ["blue", "green", "red", "purple", "orange", "pink", "yellow"]
@@ -966,26 +1010,6 @@ struct ContactEditView: View {
             Form {
                 Section(header: Text("Contact Info")) {
                     TextField("Name", text: $name)
-                    
-                    // Replace phone number field with a button to edit in system contacts
-                    Button(action: {
-                        // Open the system contacts app to edit this contact
-                        if isEditing, let index = editingIndex, index < viewModel.contacts.count {
-                            UIApplication.openContactInSystemApp(contact: viewModel.contacts[index])
-                        } else {
-                            UIApplication.openContactsApp()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "person.crop.circle.fill")
-                            Text("Edit in Contacts App")
-                        }
-                    }
-                    .padding(.vertical, 2)
-                    
-                    Text("Contact details like phone numbers and emails are managed through your device's Contacts app.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                     
                     if !useLocationTracking {
                         ZStack {
@@ -1204,14 +1228,34 @@ struct TimeZoneSelectionView: View {
     @Environment(\.presentationMode) var presentationMode
     
     var filteredTimeZones: [String] {
-        return TimeZone.knownTimeZoneIdentifiers.filter { identifier in
-            searchText.isEmpty || identifier.localizedCaseInsensitiveContains(searchText)
-        }.sorted()
+        if searchText.isEmpty {
+            return TimeZone.knownTimeZoneIdentifiers.sorted()
+        }
+        
+        let searchTextLower = searchText.lowercased()
+        
+        // First, check if the search text matches any city names
+        var matchingTimezones = Set<String>()
+        
+        // Search through city names using ContentView's map
+        let cityMap = ContentView.cityToTimezoneMap
+        for (cityName, timezone) in cityMap {
+            if cityName.lowercased().contains(searchTextLower) {
+                matchingTimezones.insert(timezone)
+            }
+        }
+        
+        // Also include direct timezone identifier matches
+        matchingTimezones.formUnion(TimeZone.knownTimeZoneIdentifiers.filter { 
+            $0.lowercased().contains(searchTextLower) 
+        })
+        
+        return Array(matchingTimezones).sorted()
     }
     
     var body: some View {
         VStack {
-            TextField("Search Time Zones", text: $searchText)
+            TextField("Search Cities or Time Zones", text: $searchText)
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(10)
@@ -1224,8 +1268,22 @@ struct TimeZoneSelectionView: View {
                         presentationMode.wrappedValue.dismiss()
                     }) {
                         HStack {
-                            Text(formatTimeZoneForDisplay(timeZone))
+                            VStack(alignment: .leading) {
+                                Text(formatTimeZoneForDisplay(timeZone))
+                                
+                                // Show matching cities if we're searching
+                                if !searchText.isEmpty {
+                                    let matchingCities = getCitiesForTimeZone(timeZone, matchingSearch: searchText)
+                                    if !matchingCities.isEmpty {
+                                        Text("Cities: " + matchingCities)
+                                            .font(.caption)
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+                            
                             Spacer()
+                            
                             if selectedTimeZone == timeZone {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.blue)
@@ -1253,6 +1311,36 @@ struct TimeZoneSelectionView: View {
         let offsetString = offset >= 0 ? "GMT+\(offset)" : "GMT\(offset)"
         
         return "\(identifier.replacingOccurrences(of: "_", with: " ")) (\(offsetString), \(abbreviation))"
+    }
+    
+    // Helper function to find cities for a time zone
+    private func getCitiesForTimeZone(_ timeZoneId: String, matchingSearch searchText: String? = nil) -> String {
+        // Get cities that map to this timezone - use ContentView's map
+        let cityMap = ContentView.cityToTimezoneMap
+        
+        let matchingCities = cityMap.compactMap { (city, timezone) -> String? in
+            if timezone == timeZoneId {
+                // If search text is provided, only include cities that match the search
+                if let searchText = searchText?.lowercased(), !searchText.isEmpty {
+                    if city.lowercased().contains(searchText) {
+                        return city
+                    } else {
+                        return nil
+                    }
+                }
+                return city
+            }
+            return nil
+        }.sorted()
+        
+        // Limit to the first 3 cities for display purposes
+        if matchingCities.count > 3 {
+            return matchingCities.prefix(3).joined(separator: ", ") + "..."
+        } else if !matchingCities.isEmpty {
+            return matchingCities.joined(separator: ", ")
+        }
+        
+        return ""
     }
 }
 
