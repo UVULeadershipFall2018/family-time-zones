@@ -17,7 +17,7 @@
                                     Text("\(contact.name) (\(contact.email))").tag(contact.email)
                                 }
                             }
-                            .onChange(of: selectedLocationContactEmail) { newValue in
+                            .onChange(of: selectedLocationContactEmail) { oldValue, newValue in
                                 if !newValue.isEmpty {
                                     contact.email = newValue
                                 }

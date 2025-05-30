@@ -264,7 +264,7 @@ struct ContentView: View {
                         .keyboardType(.phonePad)
                         .submitLabel(.done)
                         .focused($focusedField, equals: .phoneNumber)
-                        .onChange(of: focusedField) { newValue in
+                        .onChange(of: focusedField) { oldValue, newValue in
                             if newValue != .phoneNumber {
                                 // Ensure value is saved when focus moves away
                                 state.newContactPhoneNumber = state.newContactPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -949,7 +949,7 @@ struct ContactEditView: View {
                         .keyboardType(.phonePad)
                         .submitLabel(.done)
                         .focused($focusedField, equals: .phoneNumber)
-                        .onChange(of: focusedField) { newValue in
+                        .onChange(of: focusedField) { oldValue, newValue in
                             if newValue != .phoneNumber {
                                 // Ensure value is saved when focus moves away
                                 phoneNumber = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
