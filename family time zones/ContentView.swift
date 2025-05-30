@@ -1085,10 +1085,9 @@ struct ContactEditView: View {
                 .disabled(name.isEmpty)
             )
             .onAppear {
-                // Load the phone number when the view appears
-                if let index = editingIndex, index < viewModel.contacts.count {
-                    phoneNumber = viewModel.contacts[index].phoneNumber
-                }
+                // No need to load phone number since it's managed through system contacts
+                // Just set to empty string for compatibility
+                phoneNumber = ""
             }
         }
     }
@@ -1402,6 +1401,7 @@ class ContentViewState: ObservableObject {
     @Published var newContactColor = "blue"
     @Published var useLocationTracking = false
     @Published var selectedAppleIdEmail: String?
+    @Published var newContactPhoneNumber = ""
     @Published var hasAvailabilityWindow = false
     @Published var availableStartTime = 0
     @Published var availableEndTime = 24
@@ -1413,6 +1413,7 @@ class ContentViewState: ObservableObject {
         newContactColor = "blue"
         useLocationTracking = false
         selectedAppleIdEmail = nil
+        newContactPhoneNumber = ""
         hasAvailabilityWindow = false
         availableStartTime = 8 * 60 // 8:00 AM
         availableEndTime = 22 * 60 // 10:00 PM
