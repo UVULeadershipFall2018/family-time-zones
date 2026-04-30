@@ -1352,16 +1352,94 @@ struct TimeZoneSelectionView: View {
     }
 }
 
+/// Shown after creating an invite so the user can copy the deep link (Messages composer is unreliable while other sheets dismiss).
+private struct InviteLinkCopySheet: View {
+    @ObservedObject var locationManager: LocationManager
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    if let msg = locationManager.pendingInviteStatusMessage {
+                        Text(msg)
+                            .font(.subheadline)
+                    }
+                    if let link = locationManager.pendingInviteDeepLink {
+                        Text(link)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                    }
+                } header: {
+                    Text("Link to send")
+                }
+                Section {
+                    Button("Copy link") {
+                        if let link = locationManager.pendingInviteDeepLink {
+                            UIPasteboard.general.string = link
+                        }
+                    }
+                } footer: {
+                    Text("Paste into a text to your contact. They tap the link once in Family Time Zones (iCloud signed in).")
+                }
+            }
+            .navigationBarTitle("Invite link", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Done") {
+                locationManager.clearPendingInviteDeepLink()
+            })
+        }
+    }
+}
+
 // Add LocationSharingInvitationView
 struct LocationSharingInvitationView: View {
     @ObservedObject var viewModel: ContactViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
+
+    private var showInviteLinkSheet: Binding<Bool> {
+        Binding(
+            get: { viewModel.locationManager.pendingInviteDeepLink != nil },
+            set: { if !$0 { viewModel.locationManager.clearPendingInviteDeepLink() } }
+        )
+    }
     
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Your invitations")) {
+                Section {
+                    Button(action: {
+                        showingContactPicker = true
+                    }) {
+                        Label("Invite a contact", systemImage: "person.badge.plus")
+                    }
+                }
+
+                Section(header: Text("Waiting for them")) {
+                    ForEach(viewModel.locationManager.getPendingInvitations()) { invitation in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(invitation.contactName)
+                                .font(.headline)
+                            Text(invitation.contactEmail)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("They have not opened your link yet.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .contextMenu {
+                            Button("Copy invite link") {
+                                UIPasteboard.general.string = viewModel.locationManager.deepLinkURLString(invitationId: invitation.id)
+                            }
+                        }
+                    }
+                    if viewModel.locationManager.getPendingInvitations().isEmpty {
+                        Text("No pending invites")
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                }
+
+                Section(header: Text("Connected")) {
                     ForEach(viewModel.locationManager.getAcceptedInvitations()) { invitation in
                         HStack {
                             VStack(alignment: .leading) {
@@ -1374,36 +1452,24 @@ struct LocationSharingInvitationView: View {
                             
                             Spacer()
                             
-                            if invitation.invitationStatus == .accepted {
-                                Text("Connected")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                            } else if invitation.invitationStatus == .pending {
-                                Text("Pending")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                            }
+                            Text("Connected")
+                                .font(.caption)
+                                .foregroundColor(.green)
                         }
                     }
                     
                     if viewModel.locationManager.getAcceptedInvitations().isEmpty {
-                        Text("No active invitations yet")
+                        Text("Nobody connected yet")
                             .foregroundColor(.secondary)
                             .italic()
-                    }
-                    
-                    Button(action: {
-                        showingContactPicker = true
-                    }) {
-                        Label("Invite a contact", systemImage: "person.badge.plus")
                     }
                 }
                 
                 Section(header: Text("How it works")) {
-                    Text("Pick someone with a phone number (and email if they have one). We save the invite to iCloud, then Messages opens with a link already filled in — you tap Send. They tap the link once; after that, their time zone updates sync when it changes.")
+                    Text("We save the invite to iCloud, then show you a link to copy. Paste it into Messages (or email) so your contact can tap it once. After it works, we can add one-tap sending again.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("They must have Family Time Zones installed and be signed into iCloud. Apple still requires you to tap Send — texts are not sent without you.")
+                    Text("They need Family Time Zones installed and iCloud. The link looks like familytimezones://accept?invitation=…")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -1412,6 +1478,9 @@ struct LocationSharingInvitationView: View {
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
             })
+            .sheet(isPresented: showInviteLinkSheet) {
+                InviteLinkCopySheet(locationManager: viewModel.locationManager)
+            }
             .fullScreenCover(isPresented: $showingContactPicker) {
                 NavigationView {
                     RealContactPickerViewController(selectedContact: Binding<CNContact?>(

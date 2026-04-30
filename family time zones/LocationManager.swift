@@ -48,6 +48,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
     @Published var permissionStatus: CLAuthorizationStatus = .notDetermined
     @Published var locationSharedContacts: [SharedLocationContact] = []
     @Published var isLocationServicesEnabled: Bool = false
+    /// After creating an invite, set so SwiftUI can show a copyable link (UIKit composer is unreliable while sheets dismiss).
+    @Published var pendingInviteDeepLink: String?
+    @Published var pendingInviteStatusMessage: String?
 
     private let locationManager = CLLocationManager()
     private var locationInvitations: [LocationSharingInvitation] = []
@@ -273,6 +276,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
 
     // MARK: - Invitations
 
+    func clearPendingInviteDeepLink() {
+        pendingInviteDeepLink = nil
+        pendingInviteStatusMessage = nil
+    }
+
+    func deepLinkURLString(invitationId: String) -> String {
+        "familytimezones://accept?invitation=\(invitationId)"
+    }
+
     func sendLocationSharingInvitation(contact: CNContact) {
         let rawEmail = (contact.emailAddresses.first?.value as String?)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let phone = Self.preferredSMSPhone(from: contact)
@@ -300,25 +312,30 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
             inviteeEmail: rawEmail.isEmpty ? "" : rawEmail
         ) { [weak self] error in
             guard let self else { return }
+            let link = self.deepLinkURLString(invitationId: invitation.id)
             if let error {
                 self.errorMessage = "Could not sync invitation to iCloud: \(error.localizedDescription)"
-                self.presentInvitationShareFallback(messageBody: self.invitationMessageBody(for: invitation))
+                self.pendingInviteDeepLink = link
+                self.pendingInviteStatusMessage =
+                    "iCloud save failed — the invitee must open the link after the invitation exists in CloudKit. Fix the error above and try again. You can still copy this link once iCloud works."
                 return
             }
             self.startCloudPollingIfNeeded()
-            self.presentPrefilledInvitationMessages(to: invitation, contact: contact)
+            DispatchQueue.main.async {
+                self.pendingInviteDeepLink = link
+                self.pendingInviteStatusMessage =
+                    "Invitation saved to iCloud. Copy the link below and paste it into Messages (or email). Your contact opens it once in Family Time Zones while signed into iCloud."
+            }
         }
     }
 
     private func invitationMessageBody(for invitation: LocationSharingInvitation) -> String {
-        let appScheme = "familytimezones://"
-        let invitationParameter = "invitation=\(invitation.id)"
-        let deepLinkURLString = "\(appScheme)accept?\(invitationParameter)"
+        let url = self.deepLinkURLString(invitationId: invitation.id)
         return """
         Hi — I’m using Family Time Zones so you can see my local time.
 
         1) Tap this link once (Family Time Zones must be installed; stay signed into iCloud):
-        \(deepLinkURLString)
+        \(url)
 
         That’s it. Your time zone updates sync when it changes — no need to paste anything in the app.
         """
