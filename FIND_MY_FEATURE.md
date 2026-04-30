@@ -1,6 +1,8 @@
 # Find My Location Integration for Family Time Zones
 
-This branch implements a feature that allows the app to automatically determine a contact's time zone based on their shared location through Apple's Find My service.
+**Update:** The app no longer uses mock Find My types. Friend time zones use **`locationSharedContacts`** (on-device invitations) or manual selection. See README “Location sharing”.
+
+This document originally described a Find My–based design for automatically determining a contact's time zone from Apple’s Find My service.
 
 ## How It Works
 

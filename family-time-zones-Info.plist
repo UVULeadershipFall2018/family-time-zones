@@ -6,5 +6,33 @@
 	<array>
 		<string>location</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Family Time Zones uses your location to determine your time zone when you travel.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Family Time Zones can use your location in the background only if you enable Always, so your own time zone can update when you travel. Friend time zones are set manually or from data stored on this device; the app does not read other people&apos;s Find My locations.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Family Time Zones uses your location to keep your time zone updated when you travel.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Family Time Zones uses your location to determine your time zone when you travel.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>TimeZoneUpdate</key>
+		<string>Your precise location is needed temporarily to accurately determine your time zone.</string>
+	</dict>
+	<key>NSContactsUsageDescription</key>
+	<string>Contacts access is used to pick an email address when you send a location-sharing invitation from this app.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.tjandtroy.familytimezones</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>familytimezones</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

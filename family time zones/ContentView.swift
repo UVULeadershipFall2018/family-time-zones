@@ -14,6 +14,7 @@ import MessageUI
 import Foundation
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel = ContactViewModel()
     @StateObject private var state = ContentViewState()
     
@@ -236,6 +237,15 @@ struct ContentView: View {
                     state.activeSheet = .locationSharing
                     viewModel.showLocationSharingInvitation = false
                 }
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    LocationManager.shared.startLocationUpdates()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .locationSharingInvitationHandled)) { _ in
+                viewModel.refreshFindMyContacts()
+                viewModel.refreshLocationBasedTimeZones()
             }
         }
         .environmentObject(state)

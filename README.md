@@ -50,4 +50,25 @@ To add widgets to your lock screen (iOS 16+):
 - iOS 16.0+
 - Xcode 14.0+
 - SwiftUI 4.0+
-- WidgetKit 
+- WidgetKit
+
+## Location sharing (current scope)
+
+Version 1 does **not** use Apple’s Find My APIs (those require restricted entitlements). Friend time zones work best when set **manually** in the contact editor.
+
+The invitation / deep link flow stores invitation state in **UserDefaults on each device only**. There is no cross-device sync yet; a future approach would be something like **CloudKit** or another backend if you want paired sharing.
+
+Custom URL scheme: `familytimezones://accept?invitation=<id>` is handled in the SwiftUI app entry point and updates [`LocationManager`](family%20time%20zones/LocationManager.swift) (`LocationManager.shared`).
+
+Merged Info.plist keys for the main app live in **[`family-time-zones-Info.plist`](family-time-zones-Info.plist)** at the repository root (the target’s `INFOPLIST_FILE`), combined with generated keys from Xcode build settings.
+
+## Running on a physical iPhone
+
+1. Install **Xcode** from the Mac App Store and open this project.
+2. In Xcode, add your Apple ID under **Settings → Accounts** (or **Xcode → Settings → Accounts**).
+3. Select the **family time zones** target → **Signing & Capabilities** → choose your **Team** (Personal Team is fine for your own device).
+4. Connect your iPhone, select it as the run destination, press **Run** (⌘R).
+5. On the phone, if prompted: **Settings → General → VPN & Device Management** → trust your developer app.
+
+For testers who are not on your Mac, use a paid **Apple Developer Program** membership, then **Archive**, upload to **App Store Connect**, and distribute with **TestFlight**.
+ 

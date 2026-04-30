@@ -1,8 +1,10 @@
 # Info.plist Changes for FindMy Location Feature
 
+**Note:** The main app’s merged privacy keys and URL scheme now live in **`family-time-zones-Info.plist`** at the repo root. The checklist below is historical / supplemental.
+
 ## Required Privacy Descriptions
 
-Add the following privacy descriptions to your Info.plist file:
+Add the following privacy descriptions to your Info.plist file (or merge into `family-time-zones-Info.plist`):
 
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>

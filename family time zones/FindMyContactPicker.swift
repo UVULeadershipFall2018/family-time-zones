@@ -36,9 +36,14 @@ struct FindMyContactPicker: View {
                 }
                 
                 if viewModel.availableSharedLocationContacts().isEmpty {
-                    Text("No contacts available who share their location")
-                        .foregroundColor(.secondary)
-                        .padding(.vertical, 10)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("No shared-location entries on this device")
+                            .foregroundColor(.secondary)
+                        Text("Invitations are stored locally. Use manual time zones for friends until you add sync (e.g. CloudKit).")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 10)
                 }
             }
         }

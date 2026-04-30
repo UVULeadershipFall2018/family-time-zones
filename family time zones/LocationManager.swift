@@ -1,63 +1,12 @@
 import Foundation
 import CoreLocation
-// Remove FindMy import as it's not available or causing issues
-// import FindMy
 import Contacts
 import ContactsUI
 import MapKit
 import MessageUI
+import UIKit
 
-// Updated code to fix compiler errors - May 24, 2023
-
-// Define the FMNetworkDelegate protocol
-protocol FMNetworkDelegate: AnyObject {
-    func network(_ network: FMNetwork, didUpdateItems items: [FMItem])
-    func network(_ network: FMNetwork, didFailWithError error: Error)
-}
-
-// Create a mock FMNetwork class
-class FMNetwork {
-    weak var delegate: FMNetworkDelegate?
-    
-    func startUpdatingItems() {
-        print("Mock: Started updating FindMy items")
-    }
-    
-    func stopUpdatingItems() {
-        print("Mock: Stopped updating FindMy items")
-    }
-}
-
-// Create a mock FMItem class
-class FMItem {
-    let id: String
-    let name: String
-    let ownerEmail: String
-    let location: CLLocation?
-    
-    init(id: String, name: String, ownerEmail: String, location: CLLocation?) {
-        self.id = id
-        self.name = name
-        self.ownerEmail = ownerEmail
-        self.location = location
-    }
-}
-
-// Mock FindMyContact struct for displaying in the UI
-struct FindMyContact: Identifiable {
-    let id: String
-    let name: String
-    let email: String
-    let lastLocation: CLLocation?
-    var timeZone: TimeZone? {
-        if let location = lastLocation {
-            return LocationManager.lookupTimeZone(for: location)
-        }
-        return nil
-    }
-}
-
-// Replace the FMNetwork and FMItem mocks with a Location Sharing Invitation system
+// Friend locations: v1 uses on-device invitation state only (no Find My API). See README "Location sharing".
 class LocationSharingInvitation: Identifiable, Codable {
     var id: String
     var contactName: String
@@ -89,18 +38,15 @@ class LocationSharingInvitation: Identifiable, Codable {
     }
 }
 
-// Updated LocationManager to handle invitations
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FMNetworkDelegate {
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentLocation: CLLocation?
     @Published var errorMessage: String?
     @Published var permissionStatus: CLAuthorizationStatus = .notDetermined
     @Published var locationSharedContacts: [SharedLocationContact] = []
     @Published var isLocationServicesEnabled: Bool = false
-    @Published var findMyContacts: [FindMyContact] = []
     
     private let locationManager = CLLocationManager()
     private var locationInvitations: [LocationSharingInvitation] = []
-    var findMyManager: FMNetwork?
     
     // Create a shared instance for deep linking
     static let shared = LocationManager()
@@ -131,22 +77,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     override init() {
         super.init()
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyReduced // To save battery
+        locationManager.desiredAccuracy = kCLLocationAccuracyReduced
         
-        // Enable background updates
-        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.allowsBackgroundLocationUpdates = false
         locationManager.pausesLocationUpdatesAutomatically = false
         
         // Set location activity type for better location services
         locationManager.activityType = .other
         
-        // Check the current authorization status
         checkLocationServicesStatus()
-        
-        // Initialize FindMy framework
-        initializeFindMy()
-        
-        // Load any saved invitations
         loadSavedInvitations()
     }
     
@@ -167,6 +106,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
                     
                     // If already authorized, start location updates
                     if status == .authorizedWhenInUse || status == .authorizedAlways {
+                        self.locationManager.allowsBackgroundLocationUpdates = (status == .authorizedAlways)
                         self.startLocationUpdates()
                     }
                 }
@@ -192,6 +132,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     
     // Start monitoring user's location
     func startLocationUpdates() {
+        locationManager.allowsBackgroundLocationUpdates = (permissionStatus == .authorizedAlways)
         locationManager.startUpdatingLocation()
         
         // Also start significant location change monitoring for background updates
@@ -218,15 +159,19 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
         switch permissionStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             print("Location authorization granted: \(permissionStatus.rawValue)")
+            locationManager.allowsBackgroundLocationUpdates = (permissionStatus == .authorizedAlways)
             locationManager.startUpdatingLocation()
-            refreshFindMyContacts()
+            refreshSharedLocationContacts()
         case .denied:
+            locationManager.allowsBackgroundLocationUpdates = false
             errorMessage = "Location permission denied. Please enable location access in Settings to use this feature."
             print("Location permission denied")
         case .restricted:
+            locationManager.allowsBackgroundLocationUpdates = false
             errorMessage = "Location access is restricted, possibly due to parental controls."
             print("Location access restricted")
         case .notDetermined:
+            locationManager.allowsBackgroundLocationUpdates = false
             print("Location permission not determined yet")
         @unknown default:
             print("Unknown authorization status")
@@ -250,79 +195,55 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
         print("Location error: \(error.localizedDescription)")
     }
     
-    // MARK: - FindMy Integration
-    
-    private func initializeFindMy() {
-        // Initialize mock FindMy for backward compatibility
-        findMyManager = FMNetwork()
-    }
-    
-    private func loadMockFindMyContacts() {
-        // This method is no longer needed with the invitation system
-        // The shared contacts will be loaded from locationInvitations instead
-    }
-    
-    func refreshFindMyContacts() {
-        // In a real implementation, this would refresh data from FindMy
-        // Now we just update shared location contacts from invitations
+    func refreshSharedLocationContacts() {
         updateSharedLocationContacts()
     }
     
     // MARK: - Time Zone Lookup
     
-    // Get time zone for a contact based on their FindMy location
+    /// Uses `locationSharedContacts` (invitation / on-device list), not Apple Find My.
     func updateTimeZoneForContact(_ contact: Contact) -> Contact? {
         guard contact.useLocationTracking,
-              let email = contact.appleIdEmail else {
-            return nil // Nothing to update
+              let email = contact.appleIdEmail?.lowercased(), !email.isEmpty else {
+            return nil
         }
         
-        // Find the matching FindMy contact
-        if let findMyContact = findMyContacts.first(where: { $0.email.lowercased() == email.lowercased() }),
-           let location = findMyContact.lastLocation,
-           let timeZone = LocationManager.lookupTimeZone(for: location) {
-            
-            // Update the contact with the new time zone
-            var updatedContact = contact
-            updatedContact.timeZoneIdentifier = timeZone.identifier
-            updatedContact.lastLocationUpdate = Date()
-            return updatedContact
+        guard let shared = locationSharedContacts.first(where: { $0.email.lowercased() == email }),
+              let timeZone = shared.timeZone else {
+            return nil
         }
         
-        return nil
+        var updatedContact = contact
+        updatedContact.timeZoneIdentifier = timeZone.identifier
+        updatedContact.lastLocationUpdate = shared.lastUpdated ?? Date()
+        return updatedContact
     }
     
-    // Lookup time zone for a location
+    /// Coarse fallback when geocoding is not available (e.g. sync UI). Prefer `lookupTimeZoneFromLocation`.
     static func lookupTimeZone(for location: CLLocation) -> TimeZone? {
-        // In a production app, we would use the CLGeocoder to get the time zone
-        // For this prototype, we'll simulate it with a basic implementation
-        
-        // Very simple algorithm - this would be more sophisticated in production
-        // East/West hemisphere basic check
         if location.coordinate.longitude < -30 {
             if location.coordinate.longitude < -115 {
-                return TimeZone(identifier: "America/Los_Angeles") // West Coast
+                return TimeZone(identifier: "America/Los_Angeles")
             } else if location.coordinate.longitude < -90 {
-                return TimeZone(identifier: "America/Denver") // Mountain
+                return TimeZone(identifier: "America/Denver")
             } else if location.coordinate.longitude < -75 {
-                return TimeZone(identifier: "America/Chicago") // Central
+                return TimeZone(identifier: "America/Chicago")
             } else {
-                return TimeZone(identifier: "America/New_York") // East Coast
+                return TimeZone(identifier: "America/New_York")
             }
         } else if location.coordinate.longitude > 100 {
             if location.coordinate.longitude > 135 {
-                return TimeZone(identifier: "Asia/Tokyo") // Japan
+                return TimeZone(identifier: "Asia/Tokyo")
             } else {
-                return TimeZone(identifier: "Asia/Shanghai") // China
+                return TimeZone(identifier: "Asia/Shanghai")
             }
         } else if location.coordinate.longitude > 0 {
-            return TimeZone(identifier: "Europe/London") // Europe
+            return TimeZone(identifier: "Europe/London")
         }
         
-        return TimeZone.current // Fallback
+        return TimeZone.current
     }
     
-    // In a real implementation, we would use the CLGeocoder to get the time zone
     func getTimeZoneWithGeocoder(for location: CLLocation, completion: @escaping (TimeZone?) -> Void) {
         let geocoder = CLGeocoder()
         
@@ -343,44 +264,12 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
         }
     }
     
-    // MARK: - FMNetworkDelegate Methods
-    
-    func network(_ network: FMNetwork, didUpdateItems items: [FMItem]) {
-        // In a real implementation, this would handle updated FindMy items
-        print("Mock: Received \(items.count) updated FindMy items")
-        
-        // Convert FindMy items to our contact model
-        let updatedContacts = items.map { item in
-            return FindMyContact(
-                id: item.id,
-                name: item.name,
-                email: item.ownerEmail,
-                lastLocation: item.location
-            )
-        }
-        
-        // Update our contacts list
-        DispatchQueue.main.async {
-            self.findMyContacts = updatedContacts
-        }
-    }
-    
-    func network(_ network: FMNetwork, didFailWithError error: Error) {
-        // In a real implementation, this would handle FindMy errors
-        print("Mock: FindMy network error: \(error.localizedDescription)")
-        
-        DispatchQueue.main.async {
-            self.errorMessage = "FindMy error: \(error.localizedDescription)"
-        }
-    }
-    
     func lookupTimeZoneFromCurrentLocation(completion: @escaping (String?) -> Void) {
         guard let currentLocation = currentLocation else {
             completion(nil)
             return
         }
         
-        // Use geocoder fallback since fetchTimeZone is not available
         fallbackTimeZoneLookup(for: currentLocation, completion: completion)
     }
     
@@ -405,7 +294,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
     }
     
     func lookupTimeZoneFromLocation(_ location: CLLocation, completion: @escaping (String?) -> Void) {
-        // Use geocoder fallback since fetchTimeZone is not available
         fallbackTimeZoneLookup(for: location, completion: completion)
     }
     
@@ -445,7 +333,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
         let messageBody = """
         I'd like to share my time zone with you in the Family Time Zones app.
         
-        To accept, tap the link below if you have the app:
+        To accept, tap the link below if you have the app (invitation is stored on each device separately in this version):
         \(deepLinkURLString)
         
         Or share your location with me using Maps:
@@ -474,25 +362,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, FM
             } catch {
                 print("Error loading invitations: \(error.localizedDescription)")
             }
-        }
-        
-        // If no saved invitations, add a sample mock contact for testing
-        if locationInvitations.isEmpty {
-            // Add a sample invitation
-            let sampleInvitation = LocationSharingInvitation(
-                id: "sample1",
-                contactName: "John Smith",
-                contactEmail: "john@example.com"
-            )
-            sampleInvitation.invitationStatus = .accepted
-            sampleInvitation.lastLocationUpdate = Date()
-            sampleInvitation.lastKnownLocation = LocationSharingInvitation.LocationData(
-                latitude: 40.7128,
-                longitude: -74.0060 // New York
-            )
-            
-            locationInvitations.append(sampleInvitation)
-            updateSharedLocationContacts()
         }
     }
     
