@@ -52,13 +52,25 @@ To add widgets to your lock screen (iOS 16+):
 - SwiftUI 4.0+
 - WidgetKit
 
-## Location sharing (current scope)
+## Location sharing and CloudKit
 
-Version 1 does **not** use Apple’s Find My APIs (those require restricted entitlements). Friend time zones work best when set **manually** in the contact editor.
+The app does **not** use Apple’s Find My APIs. For **paired sharing**, it uses **CloudKit** (public database):
 
-The invitation / deep link flow stores invitation state in **UserDefaults on each device only**. There is no cross-device sync yet; a future approach would be something like **CloudKit** or another backend if you want paired sharing.
+- The **inviter** creates an [`Invitation`](family%20time%20zones/CloudKitInvitationSync.swift) record and shares the `familytimezones://accept?invitation=<uuid>` link. On a real iPhone, **Messages opens with the link already in the body** (and the contact’s **iPhone / mobile** number prefilled when available); otherwise the system **share sheet** is used (e.g. Simulator or no SMS).
+- The **invitee** opens the link, verifies the invitation exists in iCloud, then writes an **`InvitationReply`** record (they own that record) with coarse latitude/longitude. The inviter’s app **polls** for replies every ~45s and merges the latest location into the local invitation so time zones can update.
 
-Custom URL scheme: `familytimezones://accept?invitation=<id>` is handled in the SwiftUI app entry point and updates [`LocationManager`](family%20time%20zones/LocationManager.swift) (`LocationManager.shared`).
+**Requirements:** Both people should be signed into **iCloud** on their iPhones. The app opens **Messages** with text ready (or the share sheet as a fallback); the sender still taps **Send** — nothing is transmitted until they confirm.
+
+**Xcode setup:**
+
+1. Select the **family time zones** app target → **Signing & Capabilities** → **+ Capability** → **iCloud**.
+2. Check **CloudKit** and ensure a container is selected. The entitlements file lists `iCloud.TnT.family-time-zones`; if Xcode creates a different default container, either pick that container in the UI or change [`family time zones.entitlements`](family%20time%20zones/family%20time%20zones.entitlements) to match exactly.
+3. In **CloudKit Console** (Xcode → Open Developer Tool → CloudKit Console), after first run in **Development**, confirm record types **`Invitation`** and **`InvitationReply`** exist. Add a **Queryable** index on field **`invitationID`** for type `InvitationReply` if queries fail (CloudKit will often hint in the error log).
+4. For **production** / TestFlight, deploy the schema from Development to Production in the console.
+
+**Privacy note:** Invitation IDs are unguessable UUIDs, but the **public** database is still readable by any signed-in user of your app who knows a record name. Do not store highly sensitive data in these records.
+
+Custom URL scheme: `familytimezones://accept?invitation=<id>` is handled in [`family_time_zonesApp.swift`](family%20time%20zones/family_time_zonesApp.swift) and [`LocationManager`](family%20time%20zones/LocationManager.swift).
 
 Merged Info.plist keys for the main app live in **[`family-time-zones-Info.plist`](family-time-zones-Info.plist)** at the repository root (the target’s `INFOPLIST_FILE`), combined with generated keys from Xcode build settings.
 

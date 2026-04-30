@@ -32,6 +32,7 @@
 		FD9E7F412DAAAE3E00C6892D /* ContactsWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */; };
 		FD9E7F442DB6F2E000C6892D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F422DB6F2E000C6892D /* LocationManager.swift */; };
 		FD9E7F452DB6F2E000C6892D /* FindMyContactPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */; };
+		FD9E7F482DF1000100C6892D /* CloudKitInvitationSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9E7F472DF1000100C6892D /* CloudKitInvitationSync.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,6 +105,7 @@
 		FD9E7F3D2DAAAE3E00C6892D /* ContactsWidgetProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContactsWidgetProvider.swift; sourceTree = "<group>"; };
 		FD9E7F422DB6F2E000C6892D /* LocationManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FindMyContactPicker.swift; sourceTree = "<group>"; };
+		FD9E7F472DF1000100C6892D /* CloudKitInvitationSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitInvitationSync.swift; sourceTree = "<group>"; };
 		FDC800922DE27104001A6B87 /* family-time-zones-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "family-time-zones-Info.plist"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -171,6 +173,7 @@
 				FDC800922DE27104001A6B87 /* family-time-zones-Info.plist */,
 				FD9E7F382DAAAD9800C6892D /* family time zones.entitlements */,
 				FD9E7F432DB6F2E000C6892D /* FindMyContactPicker.swift */,
+				FD9E7F472DF1000100C6892D /* CloudKitInvitationSync.swift */,
 				FD9E7F422DB6F2E000C6892D /* LocationManager.swift */,
 				FD9E7F2C2DAAA9B000C6892D /* ContactModel.swift */,
 				FD9E7F312DAAA9B000C6892D /* ContactsWidgetProvider.swift */,
@@ -401,6 +404,7 @@
 				FD9E7F352DAAA9B000C6892D /* SharedStorage.swift in Sources */,
 				FD9E7F342DAAA9B000C6892D /* FamilyTimeZoneWidget.swift in Sources */,
 				FD9E7F452DB6F2E000C6892D /* FindMyContactPicker.swift in Sources */,
+				FD9E7F482DF1000100C6892D /* CloudKitInvitationSync.swift in Sources */,
 				FD9E7F442DB6F2E000C6892D /* LocationManager.swift in Sources */,
 				FD9E7F362DAAA9B000C6892D /* ContactViewModel.swift in Sources */,
 				FD9E7F372DAAA9B000C6892D /* ContactsWidgetProvider.swift in Sources */,

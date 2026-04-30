@@ -5,6 +5,7 @@ import ContactsUI
 import MapKit
 import MessageUI
 import UIKit
+import CloudKit
 
 // Friend locations: v1 uses on-device invitation state only (no Find My API). See README "Location sharing".
 class LocationSharingInvitation: Identifiable, Codable {
@@ -38,7 +39,7 @@ class LocationSharingInvitation: Identifiable, Codable {
     }
 }
 
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MFMessageComposeViewControllerDelegate {
     @Published var currentLocation: CLLocation?
     @Published var errorMessage: String?
     @Published var permissionStatus: CLAuthorizationStatus = .notDetermined
@@ -47,6 +48,8 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     private let locationManager = CLLocationManager()
     private var locationInvitations: [LocationSharingInvitation] = []
+    private static let inboundInviteeIdsKey = "inboundInviteeInvitationIds"
+    private var cloudPollTimer: Timer?
     
     // Create a shared instance for deep linking
     static let shared = LocationManager()
@@ -87,6 +90,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         checkLocationServicesStatus()
         loadSavedInvitations()
+        startCloudPollingIfNeeded()
     }
     
     // Check if location services are enabled and authorized
@@ -135,10 +139,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.allowsBackgroundLocationUpdates = (permissionStatus == .authorizedAlways)
         locationManager.startUpdatingLocation()
         
-        // Also start significant location change monitoring for background updates
         if CLLocationManager.significantLocationChangeMonitoringAvailable() {
             locationManager.startMonitoringSignificantLocationChanges()
         }
+        pollCloudKitInvitations()
     }
     
     // Stop monitoring user's location
@@ -183,10 +187,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             currentLocation = location
             print("Got user's current location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
             
-            // Try to determine the time zone from the current location
             if let timeZone = LocationManager.lookupTimeZone(for: location) {
                 print("Determined time zone: \(timeZone.identifier)")
             }
+            syncInboundReplyLocationToCloud()
         }
     }
     
@@ -305,52 +309,107 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             return
         }
         
-        // Create a new invitation
         let invitation = LocationSharingInvitation(
             id: UUID().uuidString,
             contactName: "\(contact.givenName) \(contact.familyName)",
             contactEmail: email
         )
         
-        // Save the invitation
         locationInvitations.append(invitation)
         saveInvitations()
+        startCloudPollingIfNeeded()
         
-        // Send the invitation via email or message
-        sendInvitationMessage(to: invitation)
+        let displayName = invitation.contactName.trimmingCharacters(in: .whitespacesAndNewlines)
+        CloudKitInvitationSync.shared.uploadInvitation(
+            id: invitation.id,
+            inviterDisplayName: displayName.isEmpty ? "Friend" : displayName,
+            inviteeEmail: email
+        ) { [weak self] error in
+            if let error = error {
+                self?.errorMessage = "Could not sync invitation to iCloud: \(error.localizedDescription)"
+            }
+            self?.startCloudPollingIfNeeded()
+        }
+        
+        sendInvitationMessage(to: invitation, contact: contact)
     }
     
-    private func sendInvitationMessage(to invitation: LocationSharingInvitation) {
-        // Create a deep link URL for your app
+    private func invitationMessageBody(for invitation: LocationSharingInvitation) -> String {
         let appScheme = "familytimezones://"
         let invitationParameter = "invitation=\(invitation.id)"
         let deepLinkURLString = "\(appScheme)accept?\(invitationParameter)"
-        
-        // Create a Maps URL to share location
         let mapsURL = "https://maps.apple.com/?action=share&ll=\(currentLocation?.coordinate.latitude ?? 0),\(currentLocation?.coordinate.longitude ?? 0)"
-        
-        // Create the message body
-        let messageBody = """
+        return """
         I'd like to share my time zone with you in the Family Time Zones app.
         
-        To accept, tap the link below if you have the app (invitation is stored on each device separately in this version):
+        Open this link on your iPhone (Family Time Zones must be installed; sign in to iCloud for sync):
         \(deepLinkURLString)
         
-        Or share your location with me using Maps:
+        Optional — share a map pin:
         \(mapsURL)
-        
-        This will help us see each other's local time accurately.
         """
+    }
+    
+    private func sendInvitationMessage(to invitation: LocationSharingInvitation, contact: CNContact) {
+        let messageBody = invitationMessageBody(for: invitation)
+        let smsRecipient = Self.preferredSMSPhone(from: contact)
         
-        // Share this invitation using the system share sheet
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            let activityVC = UIActivityViewController(
-                activityItems: [messageBody],
-                applicationActivities: nil
-            )
-            rootViewController.present(activityVC, animated: true)
+        if MFMessageComposeViewController.canSendText() {
+            let compose = MFMessageComposeViewController()
+            compose.messageComposeDelegate = self
+            if let smsRecipient {
+                compose.recipients = [smsRecipient]
+            }
+            compose.body = messageBody
+            guard let host = topPresentingViewController() else {
+                presentShareSheet(messageBody: messageBody)
+                return
+            }
+            host.present(compose, animated: true)
+            return
         }
+        
+        presentShareSheet(messageBody: messageBody)
+    }
+    
+    private func presentShareSheet(messageBody: String) {
+        guard let host = topPresentingViewController() else { return }
+        let activityVC = UIActivityViewController(activityItems: [messageBody], applicationActivities: nil)
+        host.present(activityVC, animated: true)
+    }
+    
+    private func topPresentingViewController() -> UIViewController? {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+                ?? scene.windows.first?.rootViewController else {
+            return nil
+        }
+        return Self.topMostViewController(from: root)
+    }
+    
+    private static func topMostViewController(from vc: UIViewController) -> UIViewController {
+        if let presented = vc.presentedViewController {
+            return topMostViewController(from: presented)
+        }
+        if let nav = vc as? UINavigationController, let visible = nav.visibleViewController {
+            return topMostViewController(from: visible)
+        }
+        if let tab = vc as? UITabBarController, let selected = tab.selectedViewController {
+            return topMostViewController(from: selected)
+        }
+        return vc
+    }
+    
+    /// Best phone for prefilled SMS: iPhone / mobile label, else first number.
+    private static func preferredSMSPhone(from contact: CNContact) -> String? {
+        guard !contact.phoneNumbers.isEmpty else { return nil }
+        for labeled in contact.phoneNumbers {
+            let label = labeled.label
+            if label == CNLabelPhoneNumberiPhone || label == CNLabelPhoneNumberMobile {
+                return labeled.value.stringValue
+            }
+        }
+        return contact.phoneNumbers.first?.value.stringValue
     }
     
     func loadSavedInvitations() {
@@ -363,6 +422,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 print("Error loading invitations: \(error.localizedDescription)")
             }
         }
+        startCloudPollingIfNeeded()
     }
     
     private func saveInvitations() {
@@ -424,9 +484,79 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         return locationInvitations.filter { $0.invitationStatus == .accepted }
     }
     
+    // MARK: - CloudKit
+    
+    private func inboundInviteeIds() -> [String] {
+        UserDefaults.standard.stringArray(forKey: Self.inboundInviteeIdsKey) ?? []
+    }
+    
+    private func registerInboundInvitee(id: String) {
+        var ids = inboundInviteeIds()
+        if !ids.contains(id) {
+            ids.append(id)
+            UserDefaults.standard.set(ids, forKey: Self.inboundInviteeIdsKey)
+        }
+        startCloudPollingIfNeeded()
+    }
+    
+    func startCloudPollingIfNeeded() {
+        cloudPollTimer?.invalidate()
+        cloudPollTimer = nil
+        let hasOutbound = !locationInvitations.isEmpty
+        let hasInbound = !inboundInviteeIds().isEmpty
+        guard hasOutbound || hasInbound else { return }
+        cloudPollTimer = Timer.scheduledTimer(withTimeInterval: 45, repeats: true) { [weak self] _ in
+            self?.pollCloudKitInvitations()
+        }
+        if let timer = cloudPollTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    func pollCloudKitInvitations() {
+        for invitation in locationInvitations {
+            let id = invitation.id
+            CloudKitInvitationSync.shared.fetchReplies(invitationId: id) { [weak self] records, error in
+                guard let self else { return }
+                if let error = error {
+                    print("CloudKit fetchReplies: \(error.localizedDescription)")
+                    return
+                }
+                self.applyRepliesToLocalInvitation(invitationId: id, replies: records)
+            }
+        }
+    }
+    
+    private func applyRepliesToLocalInvitation(invitationId: String, replies: [CKRecord]) {
+        guard let index = locationInvitations.firstIndex(where: { $0.id == invitationId }) else { return }
+        guard let best = replies.max(by: { replyDate($0) < replyDate($1) }) else { return }
+        guard let lat = (best["latitude"] as? NSNumber)?.doubleValue,
+              let lon = (best["longitude"] as? NSNumber)?.doubleValue else { return }
+        let when = replyDate(best)
+        var inv = locationInvitations[index]
+        inv.invitationStatus = .accepted
+        inv.lastKnownLocation = LocationSharingInvitation.LocationData(latitude: lat, longitude: lon)
+        inv.lastLocationUpdate = when
+        locationInvitations[index] = inv
+        saveInvitations()
+        updateSharedLocationContacts()
+    }
+    
+    private func replyDate(_ record: CKRecord) -> Date {
+        (record["updatedAt"] as? Date)
+            ?? record.modificationDate
+            ?? .distantPast
+    }
+    
+    private func syncInboundReplyLocationToCloud() {
+        guard let location = currentLocation else { return }
+        for id in inboundInviteeIds() {
+            CloudKitInvitationSync.shared.uploadReply(invitationId: id, location: location, completion: { _ in })
+        }
+    }
+    
     // MARK: - Handle URL Opening (Deep Links)
     func handleInvitationDeepLink(url: URL) -> Bool {
-        // Parse URL like "familytimezones://accept?invitation=ID"
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
               components.scheme == "familytimezones",
               components.host == "accept",
@@ -434,14 +564,36 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             return false
         }
         
-        // Handle the invitation acceptance
-        updateInvitationStatus(id: invitationID, status: .accepted)
-        
-        // If we have a current location, immediately share it
-        if let currentLocation = self.currentLocation {
-            updateContactLocation(id: invitationID, location: currentLocation)
+        CloudKitInvitationSync.shared.fetchInvitation(id: invitationID) { [weak self] record, error in
+            guard let self else { return }
+            if record == nil || error != nil {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Invitation not found. The sender needs to be signed into iCloud, and you need the latest link."
+                }
+                return
+            }
+            CloudKitInvitationSync.shared.uploadReply(invitationId: invitationID, location: self.currentLocation) { err in
+                DispatchQueue.main.async {
+                    if let err = err {
+                        self.errorMessage = "Could not accept invitation: \(err.localizedDescription)"
+                        return
+                    }
+                    self.registerInboundInvitee(id: invitationID)
+                    if self.locationInvitations.contains(where: { $0.id == invitationID }) {
+                        self.updateInvitationStatus(id: invitationID, status: .accepted)
+                        if let loc = self.currentLocation {
+                            self.updateContactLocation(id: invitationID, location: loc)
+                        }
+                    }
+                    NotificationCenter.default.post(name: .locationSharingInvitationHandled, object: nil)
+                }
+            }
         }
         
         return true
+    }
+    
+    func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
+        controller.dismiss(animated: true)
     }
 } 
