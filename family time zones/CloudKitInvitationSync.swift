@@ -2,8 +2,7 @@ import CloudKit
 import CoreLocation
 import Foundation
 
-/// Syncs invitation metadata and invitee coarse location via CloudKit **public** database.
-/// Invitee writes `InvitationReply` records they own; inviter reads them by `invitationID` (no CKShare required).
+/// CloudKit **public** database: inviter creates `Invitation`; invitee owns `InvitationReply` with **time zone** (+ optional coarse location).
 final class CloudKitInvitationSync {
     static let shared = CloudKitInvitationSync()
 
@@ -19,7 +18,6 @@ final class CloudKitInvitationSync {
         container.accountStatus(completionHandler: completion)
     }
 
-    /// Inviter publishes the invitation so the invitee can verify the link and post a reply.
     func uploadInvitation(id: String, inviterDisplayName: String, inviteeEmail: String, completion: @escaping (Error?) -> Void) {
         let recordID = CKRecord.ID(recordName: Self.safeRecordName(id))
         let record = CKRecord(recordType: Self.invitationRecordType, recordID: recordID)
@@ -44,8 +42,13 @@ final class CloudKitInvitationSync {
         }
     }
 
-    /// Invitee (or ongoing updates) publishes coarse location on a record they create/own.
-    func uploadReply(invitationId: String, location: CLLocation?, completion: @escaping (Error?) -> Void) {
+    /// Invitee publishes **time zone** when it changes; optional coarse location for fallback display.
+    func uploadReply(
+        invitationId: String,
+        location: CLLocation?,
+        timeZoneIdentifier: String?,
+        completion: @escaping (Error?) -> Void
+    ) {
         let recordID = CKRecord.ID(recordName: Self.replyRecordName(forInvitationId: invitationId))
         publicDB.fetch(withRecordID: recordID) { existing, fetchError in
             let record: CKRecord
@@ -55,6 +58,9 @@ final class CloudKitInvitationSync {
                 record = CKRecord(recordType: Self.replyRecordType, recordID: recordID)
             }
             record["invitationID"] = invitationId as CKRecordValue
+            if let tz = timeZoneIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines), !tz.isEmpty {
+                record["timeZoneIdentifier"] = tz as CKRecordValue
+            }
             if let loc = location {
                 record["latitude"] = NSNumber(value: loc.coordinate.latitude)
                 record["longitude"] = NSNumber(value: loc.coordinate.longitude)
@@ -69,7 +75,6 @@ final class CloudKitInvitationSync {
         }
     }
 
-    /// Inviter pulls all replies for one invitation id (newest wins in caller).
     func fetchReplies(invitationId: String, completion: @escaping ([CKRecord], Error?) -> Void) {
         let predicate = NSPredicate(format: "invitationID == %@", invitationId)
         let query = CKQuery(recordType: Self.replyRecordType, predicate: predicate)

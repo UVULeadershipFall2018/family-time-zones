@@ -123,25 +123,31 @@ class ContactViewModel: ObservableObject {
 
     func refreshLocationBasedTimeZones() {
         for contact in contacts where contact.useLocationTracking {
-            guard let email = contact.appleIdEmail?.lowercased(), !email.isEmpty,
-                  let shared = locationManager.locationSharedContacts.first(where: { $0.email.lowercased() == email }),
-                  let location = shared.lastLocation else { continue }
+            guard let shared = matchingSharedContact(for: contact) else { continue }
+            guard let tzId = shared.timeZone?.identifier else { continue }
 
             let contactId = contact.id
-            locationManager.lookupTimeZoneFromLocation(location) { [weak self] timeZoneId in
-                guard let self, let timeZoneId,
-                      let idx = self.contacts.firstIndex(where: { $0.id == contactId }) else { return }
-
-                DispatchQueue.main.async {
-                    var updated = self.contacts[idx]
-                    if updated.timeZoneIdentifier != timeZoneId {
-                        updated.timeZoneIdentifier = timeZoneId
-                        updated.lastLocationUpdate = shared.lastUpdated ?? Date()
-                        self.contacts[idx] = updated
-                        self.saveContacts()
-                    }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let idx = self.contacts.firstIndex(where: { $0.id == contactId }) else { return }
+                var updated = self.contacts[idx]
+                if updated.timeZoneIdentifier != tzId {
+                    updated.timeZoneIdentifier = tzId
+                    updated.lastLocationUpdate = shared.lastUpdated ?? Date()
+                    self.contacts[idx] = updated
+                    self.saveContacts()
                 }
             }
+        }
+    }
+
+    private func matchingSharedContact(for contact: Contact) -> LocationManager.SharedLocationContact? {
+        let email = contact.appleIdEmail?.lowercased() ?? ""
+        let phoneDigits = contact.phoneNumber.filter(\.isNumber)
+        return locationManager.locationSharedContacts.first { sc in
+            let se = sc.email.lowercased()
+            if !email.isEmpty, se == email { return true }
+            if !phoneDigits.isEmpty, sc.email.filter(\.isNumber) == phoneDigits { return true }
+            return false
         }
     }
 
@@ -236,19 +242,29 @@ class ContactViewModel: ObservableObject {
 
     private func loadSharedLocationContacts() {
         for sharedContact in locationManager.locationSharedContacts {
-            if let index = contacts.firstIndex(where: { $0.email == sharedContact.email }),
-               let timeZone = sharedContact.timeZone?.identifier {
+            let email = sharedContact.email.lowercased()
+            let phoneDigits = sharedContact.email.filter(\.isNumber)
+            let index = contacts.firstIndex { c in
+                let ce = c.email.lowercased()
+                if !email.isEmpty, ce == email { return true }
+                if !phoneDigits.isEmpty, c.phoneNumber.filter(\.isNumber) == phoneDigits { return true }
+                return false
+            }
+            if let index, let timeZone = sharedContact.timeZone?.identifier {
                 var updatedContact = contacts[index]
                 updatedContact.timeZoneIdentifier = timeZone
                 updatedContact.lastLocationUpdate = sharedContact.lastUpdated
                 contacts[index] = updatedContact
             } else if let timeZone = sharedContact.timeZone?.identifier {
+                let raw = sharedContact.email
+                let isEmail = raw.contains("@")
                 let newContact = Contact(
                     name: sharedContact.name,
                     timeZoneIdentifier: timeZone,
                     color: "blue",
                     useLocationTracking: true,
-                    appleIdEmail: sharedContact.email,
+                    appleIdEmail: isEmail ? raw : nil,
+                    phoneNumber: isEmail ? nil : raw,
                     lastLocationUpdate: sharedContact.lastUpdated
                 )
                 contacts.append(newContact)

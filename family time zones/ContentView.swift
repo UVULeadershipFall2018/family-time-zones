@@ -170,10 +170,7 @@ struct ContentView: View {
                         phoneNumber: $state.newContactPhoneNumber
                     )
                 case .locationSharing:
-                    LocationSharingInvitationView(
-                        viewModel: viewModel,
-                        confirmationMessage: $messageConfirmationText
-                    )
+                    LocationSharingInvitationView(viewModel: viewModel)
                 case .contactPicker:
                     NavigationView {
                         RealContactPickerViewController(selectedContact: Binding<CNContact?>(
@@ -241,6 +238,7 @@ struct ContentView: View {
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
                     LocationManager.shared.startLocationUpdates()
+                    LocationManager.shared.handleAppBecameActive()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .locationSharingInvitationHandled)) { _ in
@@ -1359,13 +1357,11 @@ struct LocationSharingInvitationView: View {
     @ObservedObject var viewModel: ContactViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
-    @Binding var confirmationMessage: String
-    @State private var showingMessageConfirmation = false
     
     var body: some View {
         NavigationView {
             List {
-                Section(header: Text("Your Invitations")) {
+                Section(header: Text("Your invitations")) {
                     ForEach(viewModel.locationManager.getAcceptedInvitations()) { invitation in
                         HStack {
                             VStack(alignment: .leading) {
@@ -1391,51 +1387,39 @@ struct LocationSharingInvitationView: View {
                     }
                     
                     if viewModel.locationManager.getAcceptedInvitations().isEmpty {
-                        Text("No active location sharing connections")
+                        Text("No active invitations yet")
                             .foregroundColor(.secondary)
                             .italic()
                     }
                     
                     Button(action: {
-                        // Show contact picker directly - no need to dismiss first
                         showingContactPicker = true
                     }) {
-                        Label("Invite a Contact", systemImage: "person.badge.plus")
+                        Label("Invite a contact", systemImage: "person.badge.plus")
                     }
                 }
                 
-                Section(header: Text("Privacy Information")) {
-                    Text("Location sharing helps contacts see your accurate local time. Your location is only shared with people you specifically invite.")
+                Section(header: Text("How it works")) {
+                    Text("Pick someone with a phone number (and email if they have one). We save the invite to iCloud, then Messages opens with a link already filled in — you tap Send. They tap the link once; after that, their time zone updates sync when it changes.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
-                    Text("To stop sharing with a contact, swipe left on their name and tap 'Remove'.")
+                    Text("They must have Family Time Zones installed and be signed into iCloud. Apple still requires you to tap Send — texts are not sent without you.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationBarTitle("Location Sharing", displayMode: .inline)
+            .navigationBarTitle("Share time zone", displayMode: .inline)
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
             })
             .fullScreenCover(isPresented: $showingContactPicker) {
-                // Use fullScreenCover instead of sheet to avoid nesting issues
                 NavigationView {
                     RealContactPickerViewController(selectedContact: Binding<CNContact?>(
                         get: { nil },
                         set: { contact in
                             if let contact = contact {
-                                // Process the selected contact for location sharing
                                 viewModel.locationManager.sendLocationSharingInvitation(contact: contact)
-                                
-                                // Show confirmation message
-                                let fullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
-                                let displayName = fullName.isEmpty ? contact.organizationName : fullName
-                                confirmationMessage = "Location sharing invitation sent to \(displayName)."
-                                showingMessageConfirmation = true
                             }
-                            
-                            // Dismiss the picker
                             showingContactPicker = false
                         }
                     ))
@@ -1444,13 +1428,6 @@ struct LocationSharingInvitationView: View {
                         showingContactPicker = false
                     })
                 }
-            }
-            .alert(isPresented: $showingMessageConfirmation) {
-                Alert(
-                    title: Text("Invitation Sent"),
-                    message: Text(confirmationMessage),
-                    dismissButton: .default(Text("OK"))
-                )
             }
         }
     }

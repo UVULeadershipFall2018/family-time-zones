@@ -57,7 +57,7 @@ To add widgets to your lock screen (iOS 16+):
 The app does **not** use Apple’s Find My APIs. For **paired sharing**, it uses **CloudKit** (public database):
 
 - The **inviter** creates an [`Invitation`](family%20time%20zones/CloudKitInvitationSync.swift) record and shares the `familytimezones://accept?invitation=<uuid>` link. On a real iPhone, **Messages opens with the link already in the body** (and the contact’s **iPhone / mobile** number prefilled when available); otherwise the system **share sheet** is used (e.g. Simulator or no SMS).
-- The **invitee** opens the link, verifies the invitation exists in iCloud, then writes an **`InvitationReply`** record (they own that record) with coarse latitude/longitude. The inviter’s app **polls** for replies every ~45s and merges the latest location into the local invitation so time zones can update.
+- The **invitee** opens the link, verifies the invitation exists in iCloud, then writes an **`InvitationReply`** record (they own that record) with **`timeZoneIdentifier`** (device time zone), optional coarse **latitude/longitude**, and timestamps. The inviter’s app **polls** for replies about every **120s** and merges the latest reply so the contact’s time zone updates when theirs changes (without continuous location tracking).
 
 **Requirements:** Both people should be signed into **iCloud** on their iPhones. The app opens **Messages** with text ready (or the share sheet as a fallback); the sender still taps **Send** — nothing is transmitted until they confirm.
 
