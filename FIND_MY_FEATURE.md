@@ -13,6 +13,7 @@ This document originally described a Find My–based design for automatically de
 
 ## Implementation Details
 
+
 ### New Files
 
 - `LocationManager.swift`: Handles CoreLocation and Find My integration
