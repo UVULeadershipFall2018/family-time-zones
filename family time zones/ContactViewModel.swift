@@ -3,6 +3,7 @@ import SwiftUI
 import Combine
 import WidgetKit
 import CoreLocation
+import UIKit
 
 class ContactViewModel: ObservableObject {
     @Published var contacts: [Contact] = []
@@ -10,6 +11,21 @@ class ContactViewModel: ObservableObject {
     @Published var myTimeZone: String = TimeZone.current.identifier
     @Published var searchText = ""
     @Published var showLocationSharingInvitation: Bool = false
+
+    /// The email others use to send location-sharing requests to this user.
+    var myInvitationEmail: String {
+        get { UserDefaults.standard.string(forKey: "myInvitationEmail") ?? "" }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "myInvitationEmail")
+            locationManager.checkForIncomingInvitations()
+        }
+    }
+
+    /// Display name shown to others when sending a location-sharing request.
+    var myDisplayName: String {
+        get { UserDefaults.standard.string(forKey: "myDisplayName") ?? UIDevice.current.name }
+        set { UserDefaults.standard.set(newValue, forKey: "myDisplayName") }
+    }
 
     let locationManager = LocationManager.shared
 

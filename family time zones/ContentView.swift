@@ -10,7 +10,6 @@ import WidgetKit
 import Contacts
 import ContactsUI
 import UIKit
-import MessageUI
 import Foundation
 
 struct ContentView: View {
@@ -26,7 +25,7 @@ struct ContentView: View {
     @State private var messageConfirmationText = ""
     @State private var showingMessageConfirmation = false
     @State private var messageRecipient: Contact?
-    @State private var showingMessageComposer = false
+    @State private var showingIncomingInvitations = false
     @FocusState private var focusedField: Field?
     
     // Store the mapping of cities to timezones
@@ -241,9 +240,15 @@ struct ContentView: View {
                     LocationManager.shared.handleAppBecameActive()
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .locationSharingInvitationHandled)) { _ in
-                viewModel.refreshFindMyContacts()
-                viewModel.refreshLocationBasedTimeZones()
+            .onReceive(viewModel.locationManager.$incomingInvitations) { invitations in
+                if !invitations.isEmpty {
+                    showingIncomingInvitations = true
+                } else {
+                    showingIncomingInvitations = false
+                }
+            }
+            .sheet(isPresented: $showingIncomingInvitations) {
+                IncomingInvitationsView(locationManager: viewModel.locationManager)
             }
         }
         .environmentObject(state)
@@ -723,69 +728,11 @@ struct ContentView: View {
     }
 }
 
-// Replace the MessageUI placeholder with proper MFMessageComposeViewController wrapper
-struct MessageUI: UIViewControllerRepresentable {
-    @Environment(\.presentationMode) var presentationMode
-    let recipient: String
-    let body: String
-    
-    class Coordinator: NSObject, MFMessageComposeViewControllerDelegate {
-        var parent: MessageUI
-        
-        init(_ parent: MessageUI) {
-            self.parent = parent
-        }
-        
-        func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
-            // Dismiss the message compose view controller
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(self)
-    }
-    
-    func makeUIViewController(context: Context) -> UIViewController {
-        if MFMessageComposeViewController.canSendText() {
-            let controller = MFMessageComposeViewController()
-            controller.messageComposeDelegate = context.coordinator
-            
-            // If the recipient is a phone number, add it
-            if !recipient.isEmpty {
-                controller.recipients = [recipient]
-            }
-            
-            // Add body text if provided
-            if !body.isEmpty {
-                controller.body = body
-            }
-            
-            return controller
-        } else {
-            // Fallback if the device can't send text messages
-            let controller = UIViewController()
-            let label = UILabel()
-            label.text = "Text messaging is not available on this device"
-            label.textAlignment = .center
-            label.frame = controller.view.bounds
-            controller.view.addSubview(label)
-            return controller
-        }
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Nothing to update
-    }
-}
-
-// Fix ContactRow to properly handle phone numbers and messaging
+// MARK: - ContactRow
 struct ContactRow: View {
     let contact: Contact
     @State private var currentTime = Date()
     @State private var showingMessageConfirmation = false
-    @State private var messageText = ""
-    @State private var showingMessageComposer = false
     let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -869,11 +816,6 @@ struct ContactRow: View {
                 secondaryButton: .cancel()
             )
         }
-        .sheet(isPresented: $showingMessageComposer) {
-            // Use the phone number or email for messaging
-            let recipientInfo = getPhoneNumber() ?? contact.email
-            MessageUI(recipient: recipientInfo, body: "")
-        }
     }
     
     private func initiateMessage() {
@@ -888,20 +830,10 @@ struct ContactRow: View {
     }
     
     private func openSystemMessaging() {
-        // Check if MFMessageComposeViewController can be used
-        if MFMessageComposeViewController.canSendText() {
-            showingMessageComposer = true
-        } else {
-            // Fallback to URL scheme if MessageUI isn't available
-            if let phoneNumber = getPhoneNumber() {
-                // Format the phone number by removing non-numeric characters
-                let formattedNumber = phoneNumber.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-                if !formattedNumber.isEmpty, let url = URL(string: "sms:\(formattedNumber)") {
-                    UIApplication.shared.open(url)
-                }
-            } else if !contact.email.isEmpty {
-                // Try to message using email
-                showingMessageComposer = true
+        if let phoneNumber = getPhoneNumber() {
+            let formattedNumber = phoneNumber.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+            if !formattedNumber.isEmpty, let url = URL(string: "sms:\(formattedNumber)") {
+                UIApplication.shared.open(url)
             }
         }
     }
@@ -1352,135 +1284,91 @@ struct TimeZoneSelectionView: View {
     }
 }
 
-/// Shown after creating an invite so the user can copy the deep link (Messages composer is unreliable while other sheets dismiss).
-private struct InviteLinkCopySheet: View {
-    @ObservedObject var locationManager: LocationManager
+// MARK: - Location Sharing Invitation View (outbound requests)
 
-    var body: some View {
-        NavigationView {
-            Form {
-                Section {
-                    if let msg = locationManager.pendingInviteStatusMessage {
-                        Text(msg)
-                            .font(.subheadline)
-                    }
-                    if let link = locationManager.pendingInviteDeepLink {
-                        Text(link)
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
-                } header: {
-                    Text("Link to send")
-                }
-                Section {
-                    Button("Copy link") {
-                        if let link = locationManager.pendingInviteDeepLink {
-                            UIPasteboard.general.string = link
-                        }
-                    }
-                } footer: {
-                    Text("Paste into a text to your contact. They tap the link once in Family Time Zones (iCloud signed in).")
-                }
-            }
-            .navigationBarTitle("Invite link", displayMode: .inline)
-            .navigationBarItems(trailing: Button("Done") {
-                locationManager.clearPendingInviteDeepLink()
-            })
-        }
-    }
-}
-
-// Add LocationSharingInvitationView
 struct LocationSharingInvitationView: View {
     @ObservedObject var viewModel: ContactViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
 
-    private var showInviteLinkSheet: Binding<Bool> {
-        Binding(
-            get: { viewModel.locationManager.pendingInviteDeepLink != nil },
-            set: { if !$0 { viewModel.locationManager.clearPendingInviteDeepLink() } }
-        )
-    }
-    
     var body: some View {
         NavigationView {
             List {
                 Section {
-                    Button(action: {
-                        showingContactPicker = true
-                    }) {
-                        Label("Invite a contact", systemImage: "person.badge.plus")
+                    Button(action: { showingContactPicker = true }) {
+                        Label("Request location sharing", systemImage: "person.badge.plus")
                     }
+                } footer: {
+                    Text("The other person will see your request the next time they open the app.")
                 }
 
-                Section(header: Text("Waiting for them")) {
-                    ForEach(viewModel.locationManager.getPendingInvitations()) { invitation in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(invitation.contactName)
-                                .font(.headline)
-                            Text(invitation.contactEmail)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("They have not opened your link yet.")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        .contextMenu {
-                            Button("Copy invite link") {
-                                UIPasteboard.general.string = viewModel.locationManager.deepLinkURLString(invitationId: invitation.id)
-                            }
-                        }
-                    }
-                    if viewModel.locationManager.getPendingInvitations().isEmpty {
-                        Text("No pending invites")
+                Section(header: Text("Waiting for acceptance")) {
+                    let pending = viewModel.locationManager.getPendingInvitations()
+                    if pending.isEmpty {
+                        Text("No pending requests")
                             .foregroundColor(.secondary)
                             .italic()
-                    }
-                }
-
-                Section(header: Text("Connected")) {
-                    ForEach(viewModel.locationManager.getAcceptedInvitations()) { invitation in
-                        HStack {
-                            VStack(alignment: .leading) {
+                    } else {
+                        ForEach(pending) { invitation in
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(invitation.contactName)
                                     .font(.headline)
                                 Text(invitation.contactEmail)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
+                                Text("Request sent — waiting for them to accept.")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
                             }
-                            
-                            Spacer()
-                            
-                            Text("Connected")
-                                .font(.caption)
-                                .foregroundColor(.green)
                         }
                     }
-                    
-                    if viewModel.locationManager.getAcceptedInvitations().isEmpty {
+                }
+
+                Section(header: Text("Connected")) {
+                    let accepted = viewModel.locationManager.getAcceptedInvitations()
+                    if accepted.isEmpty {
                         Text("Nobody connected yet")
                             .foregroundColor(.secondary)
                             .italic()
+                    } else {
+                        ForEach(accepted) { invitation in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(invitation.contactName)
+                                        .font(.headline)
+                                    Text(invitation.contactEmail)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text("Connected")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            }
+                        }
                     }
                 }
-                
-                Section(header: Text("How it works")) {
-                    Text("We save the invite to iCloud, then show you a link to copy. Paste it into Messages (or email) so your contact can tap it once. After it works, we can add one-tap sending again.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("They need Family Time Zones installed and iCloud. The link looks like familytimezones://accept?invitation=…")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+
+                let declined = viewModel.locationManager.getDeclinedInvitations()
+                if !declined.isEmpty {
+                    Section(header: Text("Declined")) {
+                        ForEach(declined) { invitation in
+                            HStack {
+                                Text(invitation.contactName)
+                                    .font(.headline)
+                                Spacer()
+                                Text("Declined")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
                 }
             }
-            .navigationBarTitle("Share time zone", displayMode: .inline)
+            .navigationBarTitle("Location sharing", displayMode: .inline)
             .navigationBarItems(trailing: Button("Done") {
                 presentationMode.wrappedValue.dismiss()
             })
-            .sheet(isPresented: showInviteLinkSheet) {
-                InviteLinkCopySheet(locationManager: viewModel.locationManager)
-            }
             .fullScreenCover(isPresented: $showingContactPicker) {
                 NavigationView {
                     RealContactPickerViewController(selectedContact: Binding<CNContact?>(
@@ -1498,6 +1386,72 @@ struct LocationSharingInvitationView: View {
                     })
                 }
             }
+        }
+    }
+}
+
+// MARK: - Incoming Invitations View (invitee sees requests addressed to them)
+
+struct IncomingInvitationsView: View {
+    @ObservedObject var locationManager: LocationManager
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    Text("The people below want to share locations with you. Accepting lets them see your time zone in Family Time Zones.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                ForEach(locationManager.incomingInvitations) { invitation in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "person.fill.badge.plus")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(invitation.inviterDisplayName)
+                                    .font(.headline)
+                                Text("wants to share your location")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                locationManager.acceptIncomingInvitation(id: invitation.id)
+                            }) {
+                                Text("Accept")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+
+                            Button(action: {
+                                locationManager.declineIncomingInvitation(id: invitation.id)
+                            }) {
+                                Text("Decline")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(Color(.systemGray5))
+                                    .foregroundColor(.primary)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("Location requests")
+            .navigationBarItems(trailing: Button("Done") {
+                presentationMode.wrappedValue.dismiss()
+            })
         }
     }
 }
@@ -1720,17 +1674,14 @@ struct SettingsView: View {
             // Location Sharing Section
             Section(header: Text("Location Sharing")) {
                 Button(action: {
-                    // Dismiss this view first, then show location sharing
                     presentationMode.wrappedValue.dismiss()
-                    
-                    // Use a small delay to ensure the view is dismissed first
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         viewModel.showLocationSharingInvitation = true
                     }
                 }) {
                     Label("Manage Location Sharing", systemImage: "location.fill")
                 }
-                
+
                 if !viewModel.getLocationSharingContacts().isEmpty {
                     ForEach(viewModel.getLocationSharingContacts()) { contact in
                         HStack {
@@ -1748,6 +1699,36 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+
+            // Identity Section — needed for sending and receiving requests
+            Section(header: Text("My Identity")) {
+                HStack {
+                    Text("My Name")
+                    Spacer()
+                    TextField("Device name", text: Binding(
+                        get: { viewModel.myDisplayName },
+                        set: { viewModel.myDisplayName = $0 }
+                    ))
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("My Email")
+                    Spacer()
+                    TextField("email@example.com", text: Binding(
+                        get: { viewModel.myInvitationEmail },
+                        set: { viewModel.myInvitationEmail = $0 }
+                    ))
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(.secondary)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                }
+            } footer: {
+                Text("Others send requests using your email. Set your name so people recognize who is asking to connect.")
             }
         }
         .navigationTitle("Settings")

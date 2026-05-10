@@ -21,18 +21,5 @@
 	</dict>
 	<key>NSContactsUsageDescription</key>
 	<string>Contacts access is used to pick an email address when you send a location-sharing invitation from this app.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.tjandtroy.familytimezones</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>familytimezones</string>
-			</array>
-		</dict>
-	</array>
 </dict>
 </plist>

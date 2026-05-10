@@ -3,9 +3,14 @@ import CoreLocation
 import Contacts
 import ContactsUI
 import MapKit
-import MessageUI
 import UIKit
 import CloudKit
+
+struct IncomingInvitation: Identifiable, Codable {
+    let id: String
+    let inviterDisplayName: String
+    let createdAt: Date
+}
 
 /// Local invitation row; `remoteTimeZoneIdentifier` is merged from CloudKit replies on the inviter's device.
 class LocationSharingInvitation: Identifiable, Codable {
@@ -42,20 +47,20 @@ class LocationSharingInvitation: Identifiable, Codable {
     }
 }
 
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MFMessageComposeViewControllerDelegate {
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentLocation: CLLocation?
     @Published var errorMessage: String?
     @Published var permissionStatus: CLAuthorizationStatus = .notDetermined
     @Published var locationSharedContacts: [SharedLocationContact] = []
     @Published var isLocationServicesEnabled: Bool = false
-    /// After creating an invite, set so SwiftUI can show a copyable link (UIKit composer is unreliable while sheets dismiss).
-    @Published var pendingInviteDeepLink: String?
-    @Published var pendingInviteStatusMessage: String?
+    /// Incoming location-sharing requests found in CloudKit for this user's email.
+    @Published var incomingInvitations: [IncomingInvitation] = []
 
     private let locationManager = CLLocationManager()
     private var locationInvitations: [LocationSharingInvitation] = []
     private static let inboundInviteeIdsKey = "inboundInviteeInvitationIds"
     private static let lastPublishedInboundTZKey = "lastPublishedInboundDeviceTZ"
+    private static let respondedInvitationIdsKey = "respondedInvitationIds"
     private var cloudPollTimer: Timer?
     private var timeZoneChangeObserver: NSObjectProtocol?
     private var lastInboundGeocodeAt: Date?
@@ -123,6 +128,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
     func handleAppBecameActive() {
         pollCloudKitInvitations()
         publishInboundTimeZoneToCloudIfChanged(TimeZone.current.identifier, location: currentLocation)
+        checkForIncomingInvitations()
     }
 
     func checkLocationServicesStatus() {
@@ -274,133 +280,37 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
         fallbackTimeZoneLookup(for: location, completion: completion)
     }
 
-    // MARK: - Invitations
-
-    func clearPendingInviteDeepLink() {
-        pendingInviteDeepLink = nil
-        pendingInviteStatusMessage = nil
-    }
-
-    func deepLinkURLString(invitationId: String) -> String {
-        "familytimezones://accept?invitation=\(invitationId)"
-    }
+    // MARK: - Sending invitations (inviter side)
 
     func sendLocationSharingInvitation(contact: CNContact) {
         let rawEmail = (contact.emailAddresses.first?.value as String?)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let phone = Self.preferredSMSPhone(from: contact)
-        guard !rawEmail.isEmpty || phone != nil else {
-            errorMessage = "Add an email or phone number to this contact to send an invite."
+        guard !rawEmail.isEmpty else {
+            errorMessage = "This contact needs an email address. Add one in Contacts first."
             return
         }
 
-        let rowEmail = rawEmail.isEmpty ? (phone ?? "") : rawEmail
-
+        let contactFullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
         let invitation = LocationSharingInvitation(
             id: UUID().uuidString,
-            contactName: "\(contact.givenName) \(contact.familyName)",
-            contactEmail: rowEmail
+            contactName: contactFullName.isEmpty ? rawEmail : contactFullName,
+            contactEmail: rawEmail
         )
 
         locationInvitations.append(invitation)
         saveInvitations()
         startCloudPollingIfNeeded()
 
-        let displayName = invitation.contactName.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Use the name the user set in Settings, falling back to device name
+        let myName = UserDefaults.standard.string(forKey: "myDisplayName") ?? UIDevice.current.name
         CloudKitInvitationSync.shared.uploadInvitation(
             id: invitation.id,
-            inviterDisplayName: displayName.isEmpty ? "Friend" : displayName,
-            inviteeEmail: rawEmail.isEmpty ? "" : rawEmail
+            inviterDisplayName: myName,
+            inviteeEmail: rawEmail
         ) { [weak self] error in
-            guard let self else { return }
-            let link = self.deepLinkURLString(invitationId: invitation.id)
             if let error {
-                self.errorMessage = "Could not sync invitation to iCloud: \(error.localizedDescription)"
-                self.pendingInviteDeepLink = link
-                self.pendingInviteStatusMessage =
-                    "iCloud save failed — the invitee must open the link after the invitation exists in CloudKit. Fix the error above and try again. You can still copy this link once iCloud works."
-                return
-            }
-            self.startCloudPollingIfNeeded()
-            DispatchQueue.main.async {
-                self.pendingInviteDeepLink = link
-                self.pendingInviteStatusMessage =
-                    "Invitation saved to iCloud. Copy the link below and paste it into Messages (or email). Your contact opens it once in Family Time Zones while signed into iCloud."
+                self?.errorMessage = "Could not send request: \(error.localizedDescription)"
             }
         }
-    }
-
-    private func invitationMessageBody(for invitation: LocationSharingInvitation) -> String {
-        let url = self.deepLinkURLString(invitationId: invitation.id)
-        return """
-        Hi — I’m using Family Time Zones so you can see my local time.
-
-        1) Tap this link once (Family Time Zones must be installed; stay signed into iCloud):
-        \(url)
-
-        That’s it. Your time zone updates sync when it changes — no need to paste anything in the app.
-        """
-    }
-
-    /// After CloudKit succeeds: open Messages with text ready (user taps Send). Otherwise share sheet.
-    private func presentPrefilledInvitationMessages(to invitation: LocationSharingInvitation, contact: CNContact) {
-        let messageBody = invitationMessageBody(for: invitation)
-        let smsRecipient = Self.preferredSMSPhone(from: contact)
-
-        if MFMessageComposeViewController.canSendText() {
-            let compose = MFMessageComposeViewController()
-            compose.messageComposeDelegate = self
-            if let smsRecipient {
-                compose.recipients = [smsRecipient]
-            }
-            compose.body = messageBody
-            guard let host = topPresentingViewController() else {
-                presentInvitationShareFallback(messageBody: messageBody)
-                return
-            }
-            host.present(compose, animated: true)
-            return
-        }
-
-        presentInvitationShareFallback(messageBody: messageBody)
-    }
-
-    private func presentInvitationShareFallback(messageBody: String) {
-        guard let host = topPresentingViewController() else { return }
-        let activityVC = UIActivityViewController(activityItems: [messageBody], applicationActivities: nil)
-        host.present(activityVC, animated: true)
-    }
-
-    private func topPresentingViewController() -> UIViewController? {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
-                ?? scene.windows.first?.rootViewController else {
-            return nil
-        }
-        return Self.topMostViewController(from: root)
-    }
-
-    private static func topMostViewController(from vc: UIViewController) -> UIViewController {
-        if let presented = vc.presentedViewController {
-            return topMostViewController(from: presented)
-        }
-        if let nav = vc as? UINavigationController, let visible = nav.visibleViewController {
-            return topMostViewController(from: visible)
-        }
-        if let tab = vc as? UITabBarController, let selected = tab.selectedViewController {
-            return topMostViewController(from: selected)
-        }
-        return vc
-    }
-
-    private static func preferredSMSPhone(from contact: CNContact) -> String? {
-        guard !contact.phoneNumbers.isEmpty else { return nil }
-        for labeled in contact.phoneNumbers {
-            let label = labeled.label
-            if label == CNLabelPhoneNumberiPhone || label == CNLabelPhoneNumberMobile {
-                return labeled.value.stringValue
-            }
-        }
-        return contact.phoneNumbers.first?.value.stringValue
     }
 
     private static func digitsOnly(_ string: String) -> String {
@@ -475,7 +385,69 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
         locationInvitations.filter { $0.invitationStatus == .accepted }
     }
 
-    // MARK: - CloudKit (inviter pull)
+    func getDeclinedInvitations() -> [LocationSharingInvitation] {
+        locationInvitations.filter { $0.invitationStatus == .declined }
+    }
+
+    // MARK: - Incoming invitations (invitee side)
+
+    /// Queries CloudKit for invitations addressed to the user's registered email.
+    /// Requires a queryable index on `inviteeEmail` in CloudKit Dashboard for the Invitation record type.
+    func checkForIncomingInvitations() {
+        let myEmail = UserDefaults.standard.string(forKey: "myInvitationEmail") ?? ""
+        guard !myEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        let responded = UserDefaults.standard.stringArray(forKey: Self.respondedInvitationIdsKey) ?? []
+
+        CloudKitInvitationSync.shared.fetchIncomingInvitations(forEmail: myEmail) { [weak self] records, _ in
+            guard let self else { return }
+            let pending = records
+                .filter { !responded.contains($0.recordID.recordName) }
+                .map { record -> IncomingInvitation in
+                    IncomingInvitation(
+                        id: record.recordID.recordName,
+                        inviterDisplayName: (record["inviterDisplayName"] as? String) ?? "Someone",
+                        createdAt: (record["createdAt"] as? Date) ?? record.creationDate ?? Date()
+                    )
+                }
+                .sorted { $0.createdAt < $1.createdAt }
+            DispatchQueue.main.async {
+                self.incomingInvitations = pending
+            }
+        }
+    }
+
+    func acceptIncomingInvitation(id: String) {
+        let tz = TimeZone.current.identifier
+        CloudKitInvitationSync.shared.uploadReply(
+            invitationId: id,
+            location: currentLocation,
+            timeZoneIdentifier: tz
+        ) { [weak self] error in
+            guard let self, error == nil else { return }
+            self.registerInboundInvitee(id: id)
+            self.markInvitationResponded(id: id)
+            UserDefaults.standard.removeObject(forKey: Self.lastPublishedInboundTZKey)
+            self.publishInboundTimeZoneToCloudIfChanged(tz, location: self.currentLocation)
+        }
+    }
+
+    func declineIncomingInvitation(id: String) {
+        CloudKitInvitationSync.shared.uploadDeclineReply(invitationId: id) { [weak self] _ in
+            self?.markInvitationResponded(id: id)
+        }
+    }
+
+    private func markInvitationResponded(id: String) {
+        var responded = UserDefaults.standard.stringArray(forKey: Self.respondedInvitationIdsKey) ?? []
+        if !responded.contains(id) { responded.append(id) }
+        UserDefaults.standard.set(responded, forKey: Self.respondedInvitationIdsKey)
+        DispatchQueue.main.async {
+            self.incomingInvitations.removeAll { $0.id == id }
+        }
+    }
+
+    // MARK: - CloudKit polling (inviter side)
 
     private func inboundInviteeIds() -> [String] {
         UserDefaults.standard.stringArray(forKey: Self.inboundInviteeIdsKey) ?? []
@@ -505,7 +477,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
     }
 
     func pollCloudKitInvitations() {
-        for invitation in locationInvitations {
+        for invitation in locationInvitations where invitation.invitationStatus == .pending {
             let id = invitation.id
             CloudKitInvitationSync.shared.fetchReplies(invitationId: id) { [weak self] records, error in
                 guard let self else { return }
@@ -521,6 +493,14 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
     private func applyRepliesToLocalInvitation(invitationId: String, replies: [CKRecord]) {
         guard let index = locationInvitations.firstIndex(where: { $0.id == invitationId }) else { return }
         guard let best = replies.max(by: { replyDate($0) < replyDate($1) }) else { return }
+
+        // Check if invitee declined
+        if (best["replyStatus"] as? String) == "declined" {
+            locationInvitations[index].invitationStatus = .declined
+            saveInvitations()
+            updateSharedLocationContacts()
+            return
+        }
 
         let tzRaw = (best["timeZoneIdentifier"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let lat = (best["latitude"] as? NSNumber)?.doubleValue
@@ -584,55 +564,5 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate, MF
             guard let self, let tzId else { return }
             self.publishInboundTimeZoneToCloudIfChanged(tzId, location: location)
         }
-    }
-
-    // MARK: - Deep link
-
-    func handleInvitationDeepLink(url: URL) -> Bool {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-              components.scheme == "familytimezones",
-              components.host == "accept",
-              let invitationID = components.queryItems?.first(where: { $0.name == "invitation" })?.value else {
-            return false
-        }
-
-        CloudKitInvitationSync.shared.fetchInvitation(id: invitationID) { [weak self] record, error in
-            guard let self else { return }
-            if record == nil || error != nil {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Invitation not found. Ask them to resend after you’re signed into iCloud."
-                }
-                return
-            }
-            let tz = TimeZone.current.identifier
-            CloudKitInvitationSync.shared.uploadReply(
-                invitationId: invitationID,
-                location: self.currentLocation,
-                timeZoneIdentifier: tz
-            ) { err in
-                DispatchQueue.main.async {
-                    if let err {
-                        self.errorMessage = "Could not connect: \(err.localizedDescription)"
-                        return
-                    }
-                    UserDefaults.standard.removeObject(forKey: Self.lastPublishedInboundTZKey)
-                    self.registerInboundInvitee(id: invitationID)
-                    if self.locationInvitations.contains(where: { $0.id == invitationID }) {
-                        self.updateInvitationStatus(id: invitationID, status: .accepted)
-                        if let loc = self.currentLocation {
-                            self.updateContactLocation(id: invitationID, location: loc)
-                        }
-                    }
-                    self.publishInboundTimeZoneToCloudIfChanged(tz, location: self.currentLocation)
-                    NotificationCenter.default.post(name: .locationSharingInvitationHandled, object: nil)
-                }
-            }
-        }
-
-        return true
-    }
-
-    func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
-        controller.dismiss(animated: true)
     }
 }

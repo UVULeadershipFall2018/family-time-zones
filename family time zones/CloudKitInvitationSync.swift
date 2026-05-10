@@ -3,6 +3,10 @@ import CoreLocation
 import Foundation
 
 /// CloudKit **public** database: inviter creates `Invitation`; invitee owns `InvitationReply` with **time zone** (+ optional coarse location).
+///
+/// CloudKit Dashboard requirements:
+///   - Invitation record type: `inviteeEmail` field must have a **Queryable** index so invitees can search for requests sent to them.
+///   - InvitationReply record type: `invitationID` field must have a **Queryable** index.
 final class CloudKitInvitationSync {
     static let shared = CloudKitInvitationSync()
 
@@ -17,6 +21,8 @@ final class CloudKitInvitationSync {
     func checkAccountStatus(completion: @escaping (CKAccountStatus, Error?) -> Void) {
         container.accountStatus(completionHandler: completion)
     }
+
+    // MARK: - Inviter: create invitation
 
     func uploadInvitation(id: String, inviterDisplayName: String, inviteeEmail: String, completion: @escaping (Error?) -> Void) {
         let recordID = CKRecord.ID(recordName: Self.safeRecordName(id))
@@ -42,7 +48,34 @@ final class CloudKitInvitationSync {
         }
     }
 
-    /// Invitee publishes **time zone** when it changes; optional coarse location for fallback display.
+    // MARK: - Invitee: discover pending requests
+
+    /// Fetches all Invitation records addressed to the given email.
+    /// Requires a Queryable index on `inviteeEmail` in CloudKit Dashboard.
+    func fetchIncomingInvitations(forEmail email: String, completion: @escaping ([CKRecord], Error?) -> Void) {
+        let predicate = NSPredicate(format: "inviteeEmail == %@", email)
+        let query = CKQuery(recordType: Self.invitationRecordType, predicate: predicate)
+        let operation = CKQueryOperation(query: query)
+        operation.resultsLimit = 50
+
+        var records: [CKRecord] = []
+        operation.recordMatchedBlock = { _, result in
+            if case let .success(record) = result { records.append(record) }
+        }
+        operation.queryResultBlock = { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success: completion(records, nil)
+                case .failure(let error): completion([], error)
+                }
+            }
+        }
+        publicDB.add(operation)
+    }
+
+    // MARK: - Invitee: accept or decline
+
+    /// Invitee publishes their time zone on acceptance and whenever it changes.
     func uploadReply(
         invitationId: String,
         location: CLLocation?,
@@ -58,6 +91,7 @@ final class CloudKitInvitationSync {
                 record = CKRecord(recordType: Self.replyRecordType, recordID: recordID)
             }
             record["invitationID"] = invitationId as CKRecordValue
+            record["replyStatus"] = "accepted" as CKRecordValue
             if let tz = timeZoneIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines), !tz.isEmpty {
                 record["timeZoneIdentifier"] = tz as CKRecordValue
             }
@@ -74,6 +108,22 @@ final class CloudKitInvitationSync {
             }
         }
     }
+
+    /// Invitee declines the invitation.
+    func uploadDeclineReply(invitationId: String, completion: @escaping (Error?) -> Void) {
+        let recordID = CKRecord.ID(recordName: Self.replyRecordName(forInvitationId: invitationId))
+        publicDB.fetch(withRecordID: recordID) { existing, _ in
+            let record = existing ?? CKRecord(recordType: Self.replyRecordType, recordID: recordID)
+            record["invitationID"] = invitationId as CKRecordValue
+            record["replyStatus"] = "declined" as CKRecordValue
+            record["updatedAt"] = Date() as CKRecordValue
+            self.publicDB.save(record) { _, error in
+                DispatchQueue.main.async { completion(error) }
+            }
+        }
+    }
+
+    // MARK: - Inviter: poll for replies
 
     func fetchReplies(invitationId: String, completion: @escaping ([CKRecord], Error?) -> Void) {
         let predicate = NSPredicate(format: "invitationID == %@", invitationId)
