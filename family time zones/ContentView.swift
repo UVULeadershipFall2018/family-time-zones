@@ -1783,29 +1783,17 @@ struct SettingsView: View {
                 HStack {
                     Text("My Phone")
                     Spacer()
-                    TextField("Auto-detected", text: Binding(
+                    TextField("Enter your phone number", text: Binding(
                         get: { viewModel.myPhoneNumber },
                         set: { viewModel.myPhoneNumber = $0 }
                     ))
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(.secondary)
                     .keyboardType(.phonePad)
-                    Button(action: {
-                        viewModel.autoDetectMyPhoneNumber { _ in }
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(.blue)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
                 }
             }
         }
         .navigationTitle("Settings")
-        .onAppear {
-            if viewModel.myPhoneNumber.isEmpty {
-                viewModel.autoDetectMyPhoneNumber { _ in }
-            }
-        }
     }
 }
 

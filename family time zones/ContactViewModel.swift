@@ -4,7 +4,6 @@ import Combine
 import WidgetKit
 import CoreLocation
 import UIKit
-import Contacts
 
 class ContactViewModel: ObservableObject {
     @Published var contacts: [Contact] = []
@@ -19,36 +18,6 @@ class ContactViewModel: ObservableObject {
         set {
             UserDefaults.standard.set(newValue, forKey: "myPhoneNumber")
             locationManager.checkForIncomingInvitations()
-        }
-    }
-
-    /// Reads the owner's phone number from the device's "Me" contact card and saves it.
-    func autoDetectMyPhoneNumber(completion: @escaping (Bool) -> Void) {
-        let store = CNContactStore()
-        store.requestAccess(for: .contacts) { granted, _ in
-            guard granted else {
-                DispatchQueue.main.async { completion(false) }
-                return
-            }
-            // Bridge String → NSString → CNKeyDescriptor to satisfy the ObjC protocol cast
-            let phoneKey = CNContactPhoneNumbersKey as NSString
-            let keys: [CNKeyDescriptor] = [phoneKey as CNKeyDescriptor]
-            do {
-                let me = try store.unifiedMeContactWithKeys(toFetch: keys)
-                let preferred = me.phoneNumbers.first {
-                    $0.label == CNLabelPhoneNumberiPhone || $0.label == CNLabelPhoneNumberMobile
-                } ?? me.phoneNumbers.first
-                guard let phone = preferred?.value.stringValue else {
-                    DispatchQueue.main.async { completion(false) }
-                    return
-                }
-                DispatchQueue.main.async {
-                    self.myPhoneNumber = phone
-                    completion(true)
-                }
-            } catch {
-                DispatchQueue.main.async { completion(false) }
-            }
         }
     }
 
