@@ -12,11 +12,11 @@ class ContactViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var showLocationSharingInvitation: Bool = false
 
-    /// The email others use to send location-sharing requests to this user.
-    var myInvitationEmail: String {
-        get { UserDefaults.standard.string(forKey: "myInvitationEmail") ?? "" }
+    /// The phone number others use to send location-sharing requests to this user.
+    var myPhoneNumber: String {
+        get { UserDefaults.standard.string(forKey: "myPhoneNumber") ?? "" }
         set {
-            UserDefaults.standard.set(newValue, forKey: "myInvitationEmail")
+            UserDefaults.standard.set(newValue, forKey: "myPhoneNumber")
             locationManager.checkForIncomingInvitations()
         }
     }

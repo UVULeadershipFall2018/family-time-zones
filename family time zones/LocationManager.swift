@@ -283,34 +283,47 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - Sending invitations (inviter side)
 
     func sendLocationSharingInvitation(contact: CNContact) {
-        let rawEmail = (contact.emailAddresses.first?.value as String?)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !rawEmail.isEmpty else {
-            errorMessage = "This contact needs an email address. Add one in Contacts first."
+        guard let rawPhone = Self.preferredPhone(from: contact) else {
+            errorMessage = "This contact doesn't have a phone number. Add one in Contacts first."
+            return
+        }
+
+        let normalized = CloudKitInvitationSync.normalizePhone(rawPhone)
+        guard !normalized.isEmpty else {
+            errorMessage = "Could not read a phone number for this contact."
             return
         }
 
         let contactFullName = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
         let invitation = LocationSharingInvitation(
             id: UUID().uuidString,
-            contactName: contactFullName.isEmpty ? rawEmail : contactFullName,
-            contactEmail: rawEmail
+            contactName: contactFullName.isEmpty ? rawPhone : contactFullName,
+            contactEmail: normalized   // stored in contactEmail field for compatibility
         )
 
         locationInvitations.append(invitation)
         saveInvitations()
         startCloudPollingIfNeeded()
 
-        // Use the name the user set in Settings, falling back to device name
         let myName = UserDefaults.standard.string(forKey: "myDisplayName") ?? UIDevice.current.name
         CloudKitInvitationSync.shared.uploadInvitation(
             id: invitation.id,
             inviterDisplayName: myName,
-            inviteeEmail: rawEmail
+            inviteePhone: normalized
         ) { [weak self] error in
             if let error {
                 self?.errorMessage = "Could not send request: \(error.localizedDescription)"
             }
         }
+    }
+
+    /// Returns the best available phone number from a contact (mobile preferred).
+    private static func preferredPhone(from contact: CNContact) -> String? {
+        guard !contact.phoneNumbers.isEmpty else { return nil }
+        let preferred = contact.phoneNumbers.first {
+            $0.label == CNLabelPhoneNumberiPhone || $0.label == CNLabelPhoneNumberMobile
+        }
+        return (preferred ?? contact.phoneNumbers.first)?.value.stringValue
     }
 
     private static func digitsOnly(_ string: String) -> String {
@@ -391,15 +404,16 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     // MARK: - Incoming invitations (invitee side)
 
-    /// Queries CloudKit for invitations addressed to the user's registered email.
-    /// Requires a queryable index on `inviteeEmail` in CloudKit Dashboard for the Invitation record type.
+    /// Queries CloudKit for invitations addressed to the user's registered phone number.
+    /// Requires a Queryable index on `inviteePhone` in CloudKit Dashboard for the Invitation record type.
     func checkForIncomingInvitations() {
-        let myEmail = UserDefaults.standard.string(forKey: "myInvitationEmail") ?? ""
-        guard !myEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let raw = UserDefaults.standard.string(forKey: "myPhoneNumber") ?? ""
+        let myPhone = CloudKitInvitationSync.normalizePhone(raw)
+        guard !myPhone.isEmpty else { return }
 
         let responded = UserDefaults.standard.stringArray(forKey: Self.respondedInvitationIdsKey) ?? []
 
-        CloudKitInvitationSync.shared.fetchIncomingInvitations(forEmail: myEmail) { [weak self] records, _ in
+        CloudKitInvitationSync.shared.fetchIncomingInvitations(forPhone: myPhone) { [weak self] records, _ in
             guard let self else { return }
             let pending = records
                 .filter { !responded.contains($0.recordID.recordName) }

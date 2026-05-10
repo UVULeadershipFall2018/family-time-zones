@@ -1440,7 +1440,7 @@ struct LocationSharingInvitationView: View {
             CloudKitInvitationSync.shared.uploadInvitation(
                 id: testId,
                 inviterDisplayName: "CloudKit Test",
-                inviteeEmail: "test@example.com"
+                inviteePhone: "0000000000"
             ) { error in
                 if let error = error {
                     self.cloudKitTestResult = "✗ Write failed: \(error.localizedDescription)"
@@ -1767,7 +1767,7 @@ struct SettingsView: View {
             // Identity Section — needed for sending and receiving requests
             Section(
                 header: Text("My Identity"),
-                footer: Text("Others send requests using your email. Set your name so people recognize who is asking to connect.")
+                footer: Text("Others send requests to your phone number. Set your name so people recognize who is asking to connect.")
             ) {
                 HStack {
                     Text("My Name")
@@ -1781,17 +1781,15 @@ struct SettingsView: View {
                 }
 
                 HStack {
-                    Text("My Email")
+                    Text("My Phone")
                     Spacer()
-                    TextField("email@example.com", text: Binding(
-                        get: { viewModel.myInvitationEmail },
-                        set: { viewModel.myInvitationEmail = $0 }
+                    TextField("555-123-4567", text: Binding(
+                        get: { viewModel.myPhoneNumber },
+                        set: { viewModel.myPhoneNumber = $0 }
                     ))
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(.secondary)
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
+                    .keyboardType(.phonePad)
                 }
             }
         }

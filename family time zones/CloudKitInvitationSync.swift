@@ -5,7 +5,7 @@ import Foundation
 /// CloudKit **public** database: inviter creates `Invitation`; invitee owns `InvitationReply` with **time zone** (+ optional coarse location).
 ///
 /// CloudKit Dashboard requirements:
-///   - Invitation record type: `inviteeEmail` field must have a **Queryable** index so invitees can search for requests sent to them.
+///   - Invitation record type: `inviteePhone` field must have a **Queryable** index so invitees can search for requests sent to them.
 ///   - InvitationReply record type: `invitationID` field must have a **Queryable** index.
 final class CloudKitInvitationSync {
     static let shared = CloudKitInvitationSync()
@@ -24,11 +24,11 @@ final class CloudKitInvitationSync {
 
     // MARK: - Inviter: create invitation
 
-    func uploadInvitation(id: String, inviterDisplayName: String, inviteeEmail: String, completion: @escaping (Error?) -> Void) {
+    func uploadInvitation(id: String, inviterDisplayName: String, inviteePhone: String, completion: @escaping (Error?) -> Void) {
         let recordID = CKRecord.ID(recordName: Self.safeRecordName(id))
         let record = CKRecord(recordType: Self.invitationRecordType, recordID: recordID)
         record["inviterDisplayName"] = inviterDisplayName as CKRecordValue
-        record["inviteeEmail"] = inviteeEmail as CKRecordValue
+        record["inviteePhone"] = inviteePhone as CKRecordValue
         record["status"] = NSNumber(value: 0)
         record["createdAt"] = Date() as CKRecordValue
 
@@ -50,10 +50,10 @@ final class CloudKitInvitationSync {
 
     // MARK: - Invitee: discover pending requests
 
-    /// Fetches all Invitation records addressed to the given email.
-    /// Requires a Queryable index on `inviteeEmail` in CloudKit Dashboard.
-    func fetchIncomingInvitations(forEmail email: String, completion: @escaping ([CKRecord], Error?) -> Void) {
-        let predicate = NSPredicate(format: "inviteeEmail == %@", email)
+    /// Fetches all Invitation records addressed to the given normalized phone number.
+    /// Requires a Queryable index on `inviteePhone` in CloudKit Dashboard.
+    func fetchIncomingInvitations(forPhone phone: String, completion: @escaping ([CKRecord], Error?) -> Void) {
+        let predicate = NSPredicate(format: "inviteePhone == %@", phone)
         let query = CKQuery(recordType: Self.invitationRecordType, predicate: predicate)
         let operation = CKQueryOperation(query: query)
         operation.resultsLimit = 50
@@ -148,6 +148,12 @@ final class CloudKitInvitationSync {
             }
         }
         publicDB.add(operation)
+    }
+
+    /// Strips non-digits and returns the last 10 digits so +1 country codes don't break matching.
+    static func normalizePhone(_ phone: String) -> String {
+        let digits = phone.filter(\.isNumber)
+        return digits.count > 10 ? String(digits.suffix(10)) : digits
     }
 
     static func safeRecordName(_ id: String) -> String {
