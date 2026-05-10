@@ -26,11 +26,15 @@ class ContactViewModel: ObservableObject {
     func autoDetectMyPhoneNumber(completion: @escaping (Bool) -> Void) {
         let store = CNContactStore()
         store.requestAccess(for: .contacts) { granted, _ in
-            guard granted else { DispatchQueue.main.async { completion(false) }; return }
+            guard granted else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            // Bridge String → NSString → CNKeyDescriptor to satisfy the ObjC protocol cast
+            let phoneKey = CNContactPhoneNumbersKey as NSString
+            let keys: [CNKeyDescriptor] = [phoneKey as CNKeyDescriptor]
             do {
-                let me = try store.unifiedMeContactWithKeys(
-                    toFetch: [CNContactPhoneNumbersKey as CNKeyDescriptor]
-                )
+                let me = try store.unifiedMeContactWithKeys(toFetch: keys)
                 let preferred = me.phoneNumbers.first {
                     $0.label == CNLabelPhoneNumberiPhone || $0.label == CNLabelPhoneNumberMobile
                 } ?? me.phoneNumbers.first
