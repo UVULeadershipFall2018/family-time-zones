@@ -1290,13 +1290,47 @@ struct LocationSharingInvitationView: View {
     @ObservedObject var viewModel: ContactViewModel
     @Environment(\.presentationMode) var presentationMode
     @State private var showingContactPicker = false
+    @State private var cloudKitTestResult: String? = nil
+    @State private var isTesting = false
 
     var body: some View {
         NavigationView {
             List {
+                // Show any CloudKit errors prominently
+                if let errorMessage = viewModel.locationManager.errorMessage {
+                    Section {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    } header: {
+                        Text("Error")
+                    }
+                }
+
                 Section(footer: Text("The other person will see your request the next time they open the app.")) {
                     Button(action: { showingContactPicker = true }) {
                         Label("Request location sharing", systemImage: "person.badge.plus")
+                    }
+                    Button(action: testCloudKitConnection) {
+                        HStack {
+                            if isTesting {
+                                ProgressView().scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "icloud")
+                            }
+                            Text(isTesting ? "Testing…" : "Test CloudKit connection")
+                        }
+                        .foregroundColor(.secondary)
+                    }
+                    .disabled(isTesting)
+                    if let result = cloudKitTestResult {
+                        Text(result)
+                            .font(.caption)
+                            .foregroundColor(result.hasPrefix("✓") ? .green : .red)
                     }
                 }
 
@@ -1378,6 +1412,42 @@ struct LocationSharingInvitationView: View {
                         showingContactPicker = false
                     })
                 }
+            }
+        }
+    }
+
+    private func testCloudKitConnection() {
+        isTesting = true
+        cloudKitTestResult = nil
+        CloudKitInvitationSync.shared.checkAccountStatus { status, error in
+            guard status == .available else {
+                let reason: String
+                switch status {
+                case .noAccount:   reason = "No iCloud account signed in. Go to Settings → Apple ID and sign in."
+                case .restricted:  reason = "iCloud is restricted on this device."
+                case .couldNotDetermine: reason = "Could not reach iCloud: \(error?.localizedDescription ?? "unknown error")"
+                case .temporarilyUnavailable: reason = "iCloud temporarily unavailable. Try again."
+                default: reason = "iCloud status unknown (\(status.rawValue))."
+                }
+                DispatchQueue.main.async {
+                    self.cloudKitTestResult = "✗ \(reason)"
+                    self.isTesting = false
+                }
+                return
+            }
+            // Account is available — try writing a test record
+            let testId = "ck-test-\(UUID().uuidString)"
+            CloudKitInvitationSync.shared.uploadInvitation(
+                id: testId,
+                inviterDisplayName: "CloudKit Test",
+                inviteeEmail: "test@example.com"
+            ) { error in
+                if let error = error {
+                    self.cloudKitTestResult = "✗ Write failed: \(error.localizedDescription)"
+                } else {
+                    self.cloudKitTestResult = "✓ iCloud connected and write succeeded"
+                }
+                self.isTesting = false
             }
         }
     }
