@@ -1294,65 +1294,58 @@ struct LocationSharingInvitationView: View {
     var body: some View {
         NavigationView {
             List {
-                Section {
+                Section(footer: Text("The other person will see your request the next time they open the app.")) {
                     Button(action: { showingContactPicker = true }) {
                         Label("Request location sharing", systemImage: "person.badge.plus")
                     }
-                } footer: {
-                    Text("The other person will see your request the next time they open the app.")
                 }
 
                 Section(header: Text("Waiting for acceptance")) {
-                    let pending = viewModel.locationManager.getPendingInvitations()
-                    if pending.isEmpty {
+                    if viewModel.locationManager.getPendingInvitations().isEmpty {
                         Text("No pending requests")
                             .foregroundColor(.secondary)
                             .italic()
-                    } else {
-                        ForEach(pending) { invitation in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(invitation.contactName)
-                                    .font(.headline)
-                                Text(invitation.contactEmail)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("Request sent — waiting for them to accept.")
-                                    .font(.caption2)
-                                    .foregroundColor(.orange)
-                            }
+                    }
+                    ForEach(viewModel.locationManager.getPendingInvitations()) { invitation in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(invitation.contactName)
+                                .font(.headline)
+                            Text(invitation.contactEmail)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("Request sent — waiting for them to accept.")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
                         }
                     }
                 }
 
                 Section(header: Text("Connected")) {
-                    let accepted = viewModel.locationManager.getAcceptedInvitations()
-                    if accepted.isEmpty {
+                    if viewModel.locationManager.getAcceptedInvitations().isEmpty {
                         Text("Nobody connected yet")
                             .foregroundColor(.secondary)
                             .italic()
-                    } else {
-                        ForEach(accepted) { invitation in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(invitation.contactName)
-                                        .font(.headline)
-                                    Text(invitation.contactEmail)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Text("Connected")
+                    }
+                    ForEach(viewModel.locationManager.getAcceptedInvitations()) { invitation in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(invitation.contactName)
+                                    .font(.headline)
+                                Text(invitation.contactEmail)
                                     .font(.caption)
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.secondary)
                             }
+                            Spacer()
+                            Text("Connected")
+                                .font(.caption)
+                                .foregroundColor(.green)
                         }
                     }
                 }
 
-                let declined = viewModel.locationManager.getDeclinedInvitations()
-                if !declined.isEmpty {
+                if !viewModel.locationManager.getDeclinedInvitations().isEmpty {
                     Section(header: Text("Declined")) {
-                        ForEach(declined) { invitation in
+                        ForEach(viewModel.locationManager.getDeclinedInvitations()) { invitation in
                             HStack {
                                 Text(invitation.contactName)
                                     .font(.headline)
@@ -1702,7 +1695,10 @@ struct SettingsView: View {
             }
 
             // Identity Section — needed for sending and receiving requests
-            Section(header: Text("My Identity")) {
+            Section(
+                header: Text("My Identity"),
+                footer: Text("Others send requests using your email. Set your name so people recognize who is asking to connect.")
+            ) {
                 HStack {
                     Text("My Name")
                     Spacer()
@@ -1727,8 +1723,6 @@ struct SettingsView: View {
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
                 }
-            } footer: {
-                Text("Others send requests using your email. Set your name so people recognize who is asking to connect.")
             }
         }
         .navigationTitle("Settings")
